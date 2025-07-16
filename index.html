@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="TurtleCare">
+    <meta name="theme-color" content="#667eea">
+    <title>TurtleCare - Planner Acquario Mauremys</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        input, textarea {
+            -webkit-user-select: text;
+            user-select: text;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            font-size: 16px;
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 15px;
+            padding-bottom: 80px; /* Space for bottom navigation */
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 20px 15px;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-weight: 700;
+        }
+
+        .turtle-icon {
+            font-size: 1.1em;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .tabs {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            display: flex;
+            padding: 8px 8px calc(env(safe-area-inset-bottom) + 8px) 8px;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px 8px;
+            text-align: center;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            min-height: 60px;
+            justify-content: center;
+        }
+
+        .tab-icon {
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .tab:not(.active) {
+            color: #7f8c8d;
+        }
+
+        .tab:active {
+            transform: scale(0.95);
+        }
+
+        .content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 20px 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            margin-bottom: 20px;
+        }
+
+        .task-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .task-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+        }
+
+        .task-card:active {
+            transform: scale(0.98);
+        }
+
+        .task-card.daily {
+            border-left-color: #27ae60;
+        }
+
+        .task-card.weekly {
+            border-left-color: #3498db;
+        }
+
+        .task-card.monthly {
+            border-left-color: #f39c12;
+        }
+
+        .task-card.quarterly {
+            border-left-color: #e74c3c;
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .task-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #2c3e50;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .task-frequency {
+            background: #ecf0f1;
+            color: #7f8c8d;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .task-description {
+            color: #7f8c8d;
+            margin-bottom: 15px;
+            line-height: 1.4;
+            font-size: 0.9rem;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .btn {
+            padding: 14px 20px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            min-height: 48px;
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+        }
+
+        .last-done {
+            font-size: 0.8rem;
+            color: #95a5a6;
+            margin-bottom: 4px;
+        }
+
+        .next-due {
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .due-soon {
+            color: #f39c12;
+        }
+
+        .overdue {
+            color: #e74c3c;
+        }
+
+        .upcoming {
+            color: #27ae60;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px 15px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+            line-height: 1;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-weight: 600;
+            font-size: 0.8rem;
+            line-height: 1.2;
+        }
+
+        .history-item {
+            background: white;
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            border-left: 4px solid #3498db;
+        }
+
+        .history-date {
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+        }
+
+        .history-task {
+            color: #7f8c8d;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .notes-section {
+            margin-top: 20px;
+        }
+
+        .notes-input {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid #ecf0f1;
+            border-radius: 12px;
+            resize: vertical;
+            font-family: inherit;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+            min-height: 120px;
+        }
+
+        .notes-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            z-index: 2000;
+            padding: 20px;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 20px;
+            padding: 25px 20px;
+            width: calc(100% - 40px);
+            max-width: 400px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal h3 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+            font-size: 1.3rem;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 0.9rem;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #ecf0f1;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+            min-height: 48px;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 28px;
+            cursor: pointer;
+            color: #95a5a6;
+            transition: color 0.3s ease;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .close:hover {
+            color: #e74c3c;
+            background: rgba(231, 76, 60, 0.1);
+        }
+
+        .close:active {
+            transform: scale(0.9);
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #95a5a6;
+            padding: 40px 20px;
+            font-size: 1rem;
+        }
+
+        .urgent-header {
+            margin-bottom: 20px;
+            color: #2c3e50;
+            font-size: 1.2rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title {
+            margin-bottom: 20px;
+            color: #2c3e50;
+            font-size: 1.2rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* iOS specific improvements */
+        @supports (-webkit-appearance: none) {
+            .btn {
+                -webkit-appearance: none;
+            }
+            
+            input, textarea {
+                -webkit-appearance: none;
+                border-radius: 10px;
+            }
+        }
+
+        /* Safe area handling for iPhone */
+        @supports (padding: max(0px)) {
+            .tabs {
+                padding-bottom: max(8px, env(safe-area-inset-bottom));
+            }
+            
+            .container {
+                padding-bottom: max(80px, calc(80px + env(safe-area-inset-bottom)));
+            }
+        }
+
+        /* Small screens optimization */
+        @media (max-width: 360px) {
+            .header h1 {
+                font-size: 1.6rem;
+            }
+            
+            .task-card {
+                padding: 16px;
+            }
+            
+            .modal-content {
+                padding: 20px 15px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        /* Landscape mode */
+        @media (orientation: landscape) and (max-height: 500px) {
+            .header {
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .content {
+                padding: 15px;
+            }
+        }
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            .tab:not(.active) {
+                color: #a0a0a0;
+            }
+        }
+
+        /* Accessibility improvements */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Loading state */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        /* Success animation */
+        @keyframes success-pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .success-animation {
+            animation: success-pulse 0.3s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><span class="turtle-icon">🐢</span>TurtleCare<span class="turtle-icon">🌊</span></h1>
+            <p>Planner per l'acquario delle tue Mauremys</p>
+        </div>
+
+        <div class="content">
+            <!-- Dashboard Tab -->
+            <div id="dashboard" class="tab-content">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="tasks-completed">0</div>
+                        <div class="stat-label">Attività Completate</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="days-since-water-change">0</div>
+                        <div class="stat-label">Giorni dall'ultimo cambio acqua</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="filter-health">🟢</div>
+                        <div class="stat-label">Stato Filtro</div>
+                    </div>
+                </div>
+
+                <h3 class="urgent-header">⚠️ Attività in Scadenza</h3>
+                <div id="urgent-tasks"></div>
+            </div>
+
+            <!-- Tasks Tab -->
+            <div id="tasks" class="tab-content" style="display: none;">
+                <h3 class="section-title">📋 Tutte le Attività</h3>
+                <div class="task-grid" id="all-tasks"></div>
+            </div>
+
+            <!-- History Tab -->
+            <div id="history" class="tab-content" style="display: none;">
+                <h3 class="section-title">📊 Cronologia</h3>
+                <div id="history-list"></div>
+            </div>
+
+            <!-- Notes Tab -->
+            <div id="notes" class="tab-content" style="display: none;">
+                <h3 class="section-title">📝 Note e Osservazioni</h3>
+                <div class="notes-section">
+                    <textarea id="notes-text" class="notes-input" rows="6" placeholder="Scrivi qui le tue osservazioni sulle tartarughe, qualità dell'acqua, comportamenti, ecc..."></textarea>
+                    <br><br>
+                    <button class="btn btn-primary" onclick="saveNotes()">💾 Salva Nota</button>
+                </div>
+                <div id="saved-notes" style="margin-top: 25px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="tabs">
+        <div class="tab active" onclick="showTab('dashboard')">
+            <div class="tab-icon">🏠</div>
+            <div>Home</div>
+        </div>
+        <div class="tab" onclick="showTab('tasks')">
+            <div class="tab-icon">📋</div>
+            <div>Attività</div>
+        </div>
+        <div class="tab" onclick="showTab('history')">
+            <div class="tab-icon">📊</div>
+            <div>Cronologia</div>
+        </div>
+        <div class="tab" onclick="showTab('notes')">
+            <div class="tab-icon">📝</div>
+            <div>Note</div>
+        </div>
+    </div>
+
+    <!-- Modal per completare attività -->
+    <div id="task-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h3>✅ Completa Attività</h3>
+            <div class="form-group">
+                <label>Attività:</label>
+                <input type="text" id="modal-task-name" readonly>
+            </div>
+            <div class="form-group">
+                <label>Data completamento:</label>
+                <input type="date" id="modal-date">
+            </div>
+            <div class="form-group">
+                <label>Note aggiuntive:</label>
+                <textarea id="modal-notes" rows="3" placeholder="Eventuali osservazioni..."></textarea>
+            </div>
+            <button class="btn btn-success" onclick="completeTask()">✅ Conferma Completamento</button>
+        </div>
+    </div>
+
+    <script>
+        // Definizione delle attività di manutenzione
+        const maintenanceTasks = [
+            {
+                id: 'daily-check',
+                name: 'Controllo Quotidiano',
+                description: 'Controllo temperatura, comportamento tartarughe, livello acqua',
+                frequency: 'Giornaliero',
+                intervalDays: 1,
+                category: 'daily'
+            },
+            {
+                id: 'glass-cleaning',
+                name: 'Pulizia Vetri',
+                description: 'Pulizia vetri interni ed esterni, rimozione alghe',
+                frequency: 'Ogni 3-4 giorni',
+                intervalDays: 4,
+                category: 'weekly'
+            },
+            {
+                id: 'water-change',
+                name: 'Cambio Acqua Parziale',
+                description: '15-20% acqua ogni 12-18 giorni (con filtro + piante)',
+                frequency: 'Ogni 12-18 giorni',
+                intervalDays: 15,
+                category: 'weekly'
+            },
+            {
+                id: 'deep-cleaning',
+                name: 'Pulizia Approfondita',
+                description: 'Sifonatura fondo, pulizia decorazioni, controllo piante',
+                frequency: 'Ogni 14 giorni',
+                intervalDays: 14,
+                category: 'weekly'
+            },
+            {
+                id: 'filter-cleaning',
+                name: 'Pulizia Spugne Filtro',
+                description: 'Pulizia spugne Tetra EX Plus 700 con acqua acquario',
+                frequency: 'Ogni 3-4 settimane',
+                intervalDays: 25,
+                category: 'monthly'
+            },
+            {
+                id: 'water-testing',
+                name: 'Test Completo Acqua',
+                description: 'Test pH, durezza, ammoniaca, nitriti, nitrati',
+                frequency: 'Mensile',
+                intervalDays: 30,
+                category: 'monthly'
+            },
+            {
+                id: 'filter-maintenance',
+                name: 'Manutenzione Filtro Completa',
+                description: 'Sostituzione materiali filtranti, pulizia rotore',
+                frequency: 'Ogni 3 mesi',
+                intervalDays: 90,
+                category: 'quarterly'
+            },
+            {
+                id: 'full-tank-cleaning',
+                name: 'Pulizia Completa Acquario',
+                description: 'Svuotamento, pulizia profonda, controllo attrezzature',
+                frequency: 'Ogni 6 mesi',
+                intervalDays: 180,
+                category: 'quarterly'
+            }
+        ];
+
+        // Storage functions with error handling
+        function saveData(key, data) {
+            try {
+                const dataWithTimestamp = {
+                    data: data,
+                    timestamp: new Date().toISOString(),
+                    version: '1.0'
+                };
+                const jsonData = JSON.stringify(dataWithTimestamp);
+                
+                // Try localStorage first, fallback to memory storage
+                if (typeof Storage !== 'undefined') {
+                    localStorage.setItem(`turtlecare_${key}`, jsonData);
+                } else {
+                    // Fallback to memory storage
+                    window.turtleCareData = window.turtleCareData || {};
+                    window.turtleCareData[key] = dataWithTimestamp;
+                }
+                
+                console.log(`Data saved for ${key}`);
+                return true;
+            } catch (error) {
+                console.error('Error saving data:', error);
+                // Try memory storage as fallback
+                try {
+                    window.turtleCareData = window.turtleCareData || {};
+                    window.turtleCareData[key] = { data: data, timestamp: new Date().toISOString() };
+                    return true;
+                } catch (e) {
+                    console.error('Memory storage also failed:', e);
+                    return false;
+                }
+            }
+        }
+
+        function loadData(key) {
+            try {
+                let jsonData = null;
+                
+                // Try localStorage first
+                if (typeof Storage !== 'undefined') {
+                    jsonData = localStorage.getItem(`turtlecare_${key}`);
+                }
+                
+                // Fallback to memory storage
+                if (!jsonData && window.turtleCareData && window.turtleCareData[key]) {
+                    jsonData = JSON.stringify(window.turtleCareData[key]);
+                }
+                
+                if (jsonData) {
+                    const parsedData = JSON.parse(jsonData);
+                    console.log(`Data loaded for ${key}`);
+                    return parsedData.data;
+                }
+                return null;
+            } catch (error) {
+                console.error('Error loading data:', error);
+                return null;
+            }
+        }
+
+        // Tab management
+        function showTab(tabName) {
+            // Hide all tab contents
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.style.display = 'none');
+            
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected content
+            document.getElementById(tabName).style.display = 'block';
+            event.target.closest('.tab').classList.add('active');
+            
+            // Update specific tab content
+            if (tabName === 'dashboard') {
+                updateDashboard();
+            } else if (tabName === 'tasks') {
+                renderAllTasks();
+            } else if (tabName === 'history') {
+                renderHistory();
+            } else if (tabName === 'notes') {
+                loadNotes();
+            }
+        }
+
+        // Date calculations
+        function getNextDueDate(taskId, lastCompleted, intervalDays) {
+            if (!lastCompleted) {
+                return new Date();
+            }
+            const lastDate = new Date(lastCompleted);
+            const nextDate = new Date(lastDate);
+            nextDate.setDate(nextDate.getDate() + intervalDays);
+            return nextDate;
+        }
+
+        function getDueStatus(nextDue) {
+            const today = new Date();
+            const diffTime = nextDue - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (diffDays < 0) {
+                return { status: 'overdue', text: `In ritardo di ${Math.abs(diffDays)} giorni`, class: 'overdue' };
+            } else if (diffDays <= 2) {
+                return { status: 'due-soon', text: `Scade in ${diffDays} giorni`, class: 'due-soon' };
+            } else {
+                return { status: 'upcoming', text: `Scade in ${diffDays} giorni`, class: 'upcoming' };
+            }
+        }
+
+        // Render task cards
+        function renderTaskCard(task, showActions = true) {
+            const completions = loadData('completions') || {};
+            const lastCompleted = completions[task.id];
+            const nextDue = getNextDueDate(task.id, lastCompleted, task.intervalDays);
+            const dueStatus = getDueStatus(nextDue);
+            
+            const lastCompletedText = lastCompleted 
+                ? `Ultima volta: ${new Date(lastCompleted).toLocaleDateString('it-IT')}`
+                : 'Mai eseguita';
+
+            return `
+                <div class="task-card ${task.category}">
+                    <div class="task-header">
+                        <div class="task-title">${task.name}</div>
+                        <div class="task-frequency">${task.frequency}</div>
+                    </div>
+                    <div class="task-description">${task.description}</div>
+                    ${showActions ? `
+                        <div class="task-actions">
+                            <button class="btn btn-success" onclick="openTaskModal('${task.id}')">
+                                ✅ Completata
+                            </button>
+                        </div>
+                    ` : ''}
+                    <div class="last-done">${lastCompletedText}</div>
+                    <div class="next-due ${dueStatus.class}">${dueStatus.text}</div>
+                </div>
+            `;
+        }
+
+        // Dashboard updates
+        function updateDashboard() {
+            const completions = loadData('completions') || {};
+            const history = loadData('history') || [];
+            
+            // Update statistics
+            document.getElementById('tasks-completed').textContent = history.length;
+            
+            // Calculate days since last water change
+            const waterChangeCompletion = completions['water-change'];
+            if (waterChangeCompletion) {
+                const lastChange = new Date(waterChangeCompletion);
+                const today = new Date();
+                const diffTime = today - lastChange;
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                document.getElementById('days-since-water-change').textContent = diffDays;
+            } else {
+                document.getElementById('days-since-water-change').textContent = '∞';
+            }
+            
+            // Filter status
+            const filterCompletion = completions['filter-cleaning'];
+            let filterStatus = '🔴';
+            if (filterCompletion) {
+                const lastFilter = new Date(filterCompletion);
+                const today = new Date();
+                const diffTime = today - lastFilter;
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                if (diffDays < 20) filterStatus = '🟢';
+                else if (diffDays < 30) filterStatus = '🟡';
+            }
+            document.getElementById('filter-health').textContent = filterStatus;
+            
+            // Show urgent tasks
+            const urgentContainer = document.getElementById('urgent-tasks');
+            const urgentTasks = maintenanceTasks.filter(task => {
+                const nextDue = getNextDueDate(task.id, completions[task.id], task.intervalDays);
+                const dueStatus = getDueStatus(nextDue);
+                return dueStatus.status === 'overdue' || dueStatus.status === 'due-soon';
+            });
+            
+            if (urgentTasks.length === 0) {
+                urgentContainer.innerHTML = '<div class="empty-state">🎉 Tutte le attività sono in regola!</div>';
+            } else {
+                urgentContainer.innerHTML = urgentTasks.map(task => renderTaskCard(task)).join('');
+            }
+        }
+
+        // Render all tasks
+        function renderAllTasks() {
+            const container = document.getElementById('all-tasks');
+            container.innerHTML = maintenanceTasks.map(task => renderTaskCard(task)).join('');
+        }
+
+        // Modal management
+        let currentTaskId = '';
+
+        function openTaskModal(taskId) {
+            currentTaskId = taskId;
+            const task = maintenanceTasks.find(t => t.id === taskId);
+            document.getElementById('modal-task-name').value = task.name;
+            document.getElementById('modal-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('modal-notes').value = '';
+            document.getElementById('task-modal').style.display = 'block';
+            
+            // Prevent background scrolling
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            document.getElementById('task-modal').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        function completeTask() {
+            const date = document.getElementById('modal-date').value;
+            const notes = document.getElementById('modal-notes').value;
+            const task = maintenanceTasks.find(t => t.id === currentTaskId);
+            
+            if (!date) {
+                alert('⚠️ Seleziona una data!');
+                return;
+            }
+            
+            // Add loading state
+            const button = event.target;
+            const originalText = button.innerHTML;
+            button.innerHTML = '⏳ Salvando...';
+            button.disabled = true;
+            
+            // Save completion
+            const completions = loadData('completions') || {};
+            completions[currentTaskId] = date;
+            saveData('completions', completions);
+            
+            // Add to history
+            const history = loadData('history') || [];
+            history.unshift({
+                id: Date.now(),
+                taskId: currentTaskId,
+                taskName: task.name,
+                date: date,
+                notes: notes,
+                timestamp: new Date().toISOString()
+            });
+            saveData('history', history);
+            
+            // Success feedback
+            setTimeout(() => {
+                button.innerHTML = '✅ Salvato!';
+                button.classList.add('success-animation');
+                
+                setTimeout(() => {
+                    closeModal();
+                    updateDashboard();
+                    
+                    // Show success message
+                    showToast('✅ Attività completata e salvata!');
+                    
+                    // Reset button
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                    button.classList.remove('success-animation');
+                }, 800);
+            }, 500);
+        }
+
+        // Toast notification
+        function showToast(message) {
+            // Remove existing toast
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+            
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = message;
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: #27ae60;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 25px;
+                font-weight: 600;
+                z-index: 3000;
+                box-shadow: 0 5px 20px rgba(39, 174, 96, 0.4);
+                font-size: 0.9rem;
+                animation: slideDown 0.3s ease-out;
+            `;
+            
+            // Add animation
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes slideDown {
+                    from { transform: translateX(-50%) translateY(-100%); opacity: 0; }
+                    to { transform: translateX(-50%) translateY(0); opacity: 1; }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideDown 0.3s ease-out reverse';
+                setTimeout(() => {
+                    toast.remove();
+                    style.remove();
+                }, 300);
+            }, 2500);
+        }
+
+        // Render history
+        function renderHistory() {
+            const history = loadData('history') || [];
+            const container = document.getElementById('history-list');
+            
+            if (history.length === 0) {
+                container.innerHTML = '<div class="empty-state">Nessuna attività completata ancora.<br>Inizia completando la prima attività! 🚀</div>';
+                return;
+            }
+            
+            container.innerHTML = history.map(item => `
+                <div class="history-item">
+                    <div class="history-date">${new Date(item.date).toLocaleDateString('it-IT')} - ${item.taskName}</div>
+                    <div class="history-task">${item.notes || 'Nessuna nota aggiuntiva'}</div>
+                </div>
+            `).join('');
+        }
+
+        // Notes management
+        function saveNotes() {
+            const notesText = document.getElementById('notes-text').value.trim();
+            if (!notesText) {
+                alert('⚠️ Scrivi qualcosa prima di salvare!');
+                return;
+            }
+            
+            const button = event.target;
+            const originalText = button.innerHTML;
+            button.innerHTML = '⏳ Salvando...';
+            button.disabled = true;
+            
+            const savedNotes = loadData('notes') || [];
+            savedNotes.unshift({
+                id: Date.now(),
+                text: notesText,
+                date: new Date().toISOString()
+            });
+            
+            saveData('notes', savedNotes);
+            document.getElementById('notes-text').value = '';
+            
+            setTimeout(() => {
+                button.innerHTML = '✅ Salvata!';
+                loadNotes();
+                showToast('📝 Nota salvata!');
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                }, 1000);
+            }, 500);
+        }
+
+        function loadNotes() {
+            const savedNotes = loadData('notes') || [];
+            const container = document.getElementById('saved-notes');
+            
+            if (savedNotes.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+            
+            container.innerHTML = '<h4 class="section-title">📋 Note Salvate</h4>' + 
+                savedNotes.map(note => `
+                    <div class="history-item">
+                        <div class="history-date">${new Date(note.date).toLocaleDateString('it-IT', { 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        })}</div>
+                        <div class="history-task">${note.text}</div>
+                    </div>
+                `).join('');
+        }
+
+        // Event listeners
+        window.onclick = function(event) {
+            const modal = document.getElementById('task-modal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        // Prevent zoom on iOS
+        document.addEventListener('gesturestart', function (e) {
+            e.preventDefault();
+        });
+
+        // Handle iOS viewport changes
+        function handleViewportChange() {
+            const vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        }
+
+        window.addEventListener('resize', handleViewportChange);
+        window.addEventListener('orientationchange', handleViewportChange);
+
+        // Prevent pull-to-refresh on mobile
+        document.body.addEventListener('touchstart', function(e) {
+            if (e.touches.length === 1 && window.scrollY === 0) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        document.body.addEventListener('touchmove', function(e) {
+            if (e.touches.length === 1 && window.scrollY === 0) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            handleViewportChange();
+            updateDashboard();
+            
+            // Add install prompt for PWA
+            if ('serviceWorker' in navigator) {
+                console.log('PWA support detected');
+            }
+            
+            console.log('🐢 TurtleCare app inizializzata per mobile!');
+            
+            // Show welcome message for first time users
+            const isFirstTime = !loadData('completions') && !loadData('history');
+            if (isFirstTime) {
+                setTimeout(() => {
+                    showToast('🐢 Benvenuto in TurtleCare! Inizia completando la prima attività.');
+                }, 1000);
+            }
+        });
+
+        // Performance optimization
+        let scrollTimeout;
+        window.addEventListener('scroll', function() {
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(function() {
+                // Lazy load or optimize as needed
+            }, 100);
+        });
+    </script>
+</body>
+</html>
