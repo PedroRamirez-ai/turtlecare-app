@@ -22,6 +22,8 @@
             font-size: 16px;
             line-height: 1.5;
             padding-bottom: 80px;
+            -webkit-overflow-scrolling: touch;
+            overflow-x: hidden;
         }
 
         .container {
@@ -79,6 +81,8 @@
             color: #7f8c8d;
             transition: all 0.2s ease;
             touch-action: manipulation;
+            -webkit-tap-highlight-color: rgba(102, 126, 234, 0.2);
+            -webkit-touch-callout: none;
         }
 
         .tab-icon {
@@ -169,6 +173,10 @@
             margin-bottom: 10px;
             touch-action: manipulation;
             transition: transform 0.1s ease;
+            -webkit-tap-highlight-color: rgba(39, 174, 96, 0.2);
+            -webkit-touch-callout: none;
+            -webkit-appearance: none;
+            border: 1px solid transparent;
         }
 
         .btn:active {
@@ -281,10 +289,12 @@
             border: 2px solid #ecf0f1;
             border-radius: 8px;
             font-family: inherit;
-            font-size: 1rem;
+            font-size: 16px;
             resize: vertical;
             min-height: 100px;
             margin-bottom: 15px;
+            -webkit-appearance: none;
+            -webkit-border-radius: 8px;
         }
 
         .notes-input:focus {
@@ -343,7 +353,9 @@
             border: 2px solid #ecf0f1;
             border-radius: 6px;
             font-family: inherit;
-            font-size: 1rem;
+            font-size: 16px;
+            -webkit-appearance: none;
+            -webkit-border-radius: 6px;
         }
 
         .form-group input:focus,
@@ -372,6 +384,8 @@
             justify-content: center;
             border-radius: 50%;
             touch-action: manipulation;
+            -webkit-tap-highlight-color: rgba(149, 165, 166, 0.2);
+            -webkit-touch-callout: none;
         }
 
         .close:hover {
@@ -406,6 +420,36 @@
             }
         }
 
+        /* iOS specific fixes */
+        @supports (-webkit-appearance: none) {
+            .btn, .tab, .close {
+                -webkit-appearance: none;
+            }
+            
+            input, textarea {
+                -webkit-appearance: none;
+                -webkit-border-radius: 8px;
+            }
+            
+            /* Prevent iOS zoom on input focus */
+            input[type="text"], 
+            input[type="date"], 
+            textarea {
+                font-size: 16px !important;
+            }
+        }
+
+        /* Safe area handling for iPhone */
+        @supports (padding: max(0px)) {
+            .tabs {
+                padding-bottom: max(10px, env(safe-area-inset-bottom));
+            }
+            
+            body {
+                padding-bottom: max(80px, calc(80px + env(safe-area-inset-bottom)));
+            }
+        }
+
         /* Prevent text selection on UI elements */
         .tab, .btn, .close, .stat-card {
             -webkit-user-select: none;
@@ -420,6 +464,16 @@
             -moz-user-select: text;
             -ms-user-select: text;
             user-select: text;
+        }
+
+        /* iOS scroll momentum and touch improvements */
+        .container, .modal-content {
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Prevent iOS elastic bounce except for main content */
+        .tabs, .modal {
+            -webkit-overflow-scrolling: auto;
         }
     </style>
 </head>
@@ -892,6 +946,27 @@
         document.addEventListener('DOMContentLoaded', function() {
             updateDashboard();
             console.log('🐢 TurtleCare app inizializzata!');
+            
+            // iOS specific fixes
+            if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+                // Prevent iOS zoom on double tap
+                let lastTouchEnd = 0;
+                document.addEventListener('touchend', function (event) {
+                    const now = (new Date()).getTime();
+                    if (now - lastTouchEnd <= 300) {
+                        event.preventDefault();
+                    }
+                    lastTouchEnd = now;
+                }, false);
+                
+                // Fix iOS viewport
+                const viewport = document.querySelector('meta[name=viewport]');
+                if (viewport) {
+                    viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+                }
+                
+                console.log('🍎 iOS optimizations applied');
+            }
             
             // Welcome message for first time users
             const isFirstTime = !loadData('completions') && !loadData('history');
