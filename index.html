@@ -1,95 +1,4 @@
-// Notes functions
-        async function saveNotes() {
-            const notesText = document.getElementById('notes-text').value.trim();
-            if (!notesText) {
-                alert('⚠️ Scrivi qualcosa prima di salvare!');
-                return;
-            }
-            
-            const savedNotes = await loadData('notes') || [];
-            savedNotes.unshift({
-                id: Date.now(),
-                text: notesText,
-                date: new Date().toISOString()
-            });
-            
-            await saveData('notes', savedNotes);
-            document.getElementById('notes-text').value = '';
-            await loadNotes();
-            showToast('📝 Nota salvata e sincronizzata!');
-        }
-
-        async function loadNotes() {
-            const savedNotes = await loadData('notes') || [];
-            const container = document.getElementById('saved-notes');
-            
-            if (savedNotes.length === 0) {
-                container.innerHTML = '';
-                return;
-            }
-            
-            container.innerHTML = '<h4 class="section-title">📋 Note Salvate</h4>' + 
-                savedNotes.map(note => `
-                    <div class="history-item">
-                        <div class="history-date">${new Date(note.date).toLocaleDateString('it-IT', { 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        })}</div>
-                        <div class="history-task">${note.text}</div>
-                    </div>
-                `).join('');
-        }
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', async function() {
-            try {
-                // Setup Firebase real-time sync
-                setupRealtimeSync();
-                
-                // Load initial data
-                await updateDashboard();
-                updateConnectionStatus();
-                
-                console.log('🐢 TurtleCare app con Firebase inizializzata!');
-                
-                // iOS specific fixes
-                if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-                    let lastTouchEnd = 0;
-                    document.addEventListener('touchend', function (event) {
-                        const now = (new Date()).getTime();
-                        if (now - lastTouchEnd <= 300) {
-                            event.preventDefault();
-                        }
-                        lastTouchEnd = now;
-                    }, false);
-                    
-                    const viewport = document.querySelector('meta[name=viewport]');
-                    if (viewport) {
-                        viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
-                    }
-                    
-                    console.log('🍎 iOS optimizations applied');
-                }
-                
-                // Welcome message for first time users
-                const isFirstTime = !(await loadData('completions')) && !(await loadData('history'));
-                if (isFirstTime) {
-                    setTimeout(() => {
-                        showToast('🐢 Benvenuto in TurtleCare sincronizzato!');
-                    }, 1500);
-                }
-                
-            } catch (error) {
-                console.error('❌ Initialization error:', error);
-                showToast('⚠️ Modalità offline attiva');
-            }
-        });
-    </script>
-</body>
-</html><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
@@ -505,26 +414,6 @@
             display: block;
         }
 
-        /* Mobile optimizations */
-        @media (max-width: 480px) {
-            .container {
-                padding: 10px;
-            }
-            
-            .header h1 {
-                font-size: 1.5rem;
-            }
-            
-            .modal-content {
-                width: calc(100% - 20px);
-                padding: 15px;
-            }
-            
-            .stats-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-        }
-
         /* iOS specific fixes */
         @supports (-webkit-appearance: none) {
             .btn, .tab, .close {
@@ -552,6 +441,26 @@
             
             body {
                 padding-bottom: max(80px, calc(80px + env(safe-area-inset-bottom)));
+            }
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 480px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .modal-content {
+                width: calc(100% - 20px);
+                padding: 15px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
             }
         }
 
@@ -1197,28 +1106,28 @@
         }
 
         // Notes functions
-        function saveNotes() {
+        async function saveNotes() {
             const notesText = document.getElementById('notes-text').value.trim();
             if (!notesText) {
                 alert('⚠️ Scrivi qualcosa prima di salvare!');
                 return;
             }
             
-            const savedNotes = loadData('notes') || [];
+            const savedNotes = await loadData('notes') || [];
             savedNotes.unshift({
                 id: Date.now(),
                 text: notesText,
                 date: new Date().toISOString()
             });
             
-            saveData('notes', savedNotes);
+            await saveData('notes', savedNotes);
             document.getElementById('notes-text').value = '';
-            loadNotes();
-            showToast('📝 Nota salvata!');
+            await loadNotes();
+            showToast('📝 Nota salvata e sincronizzata!');
         }
 
-        function loadNotes() {
-            const savedNotes = loadData('notes') || [];
+        async function loadNotes() {
+            const savedNotes = await loadData('notes') || [];
             const container = document.getElementById('saved-notes');
             
             if (savedNotes.length === 0) {
@@ -1242,39 +1151,59 @@
         }
 
         // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            updateDashboard();
-            console.log('🐢 TurtleCare app inizializzata!');
-            
-            // iOS specific fixes
-            if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-                // Prevent iOS zoom on double tap
-                let lastTouchEnd = 0;
-                document.addEventListener('touchend', function (event) {
-                    const now = (new Date()).getTime();
-                    if (now - lastTouchEnd <= 300) {
-                        event.preventDefault();
-                    }
-                    lastTouchEnd = now;
-                }, false);
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                // Setup Firebase real-time sync
+                setupRealtimeSync();
                 
-                // Fix iOS viewport
-                const viewport = document.querySelector('meta[name=viewport]');
-                if (viewport) {
-                    viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+                // Load initial data
+                await updateDashboard();
+                updateConnectionStatus();
+                
+                console.log('🐢 TurtleCare app con Firebase inizializzata!');
+                
+                // iOS specific fixes
+                if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+                    let lastTouchEnd = 0;
+                    document.addEventListener('touchend', function (event) {
+                        const now = (new Date()).getTime();
+                        if (now - lastTouchEnd <= 300) {
+                            event.preventDefault();
+                        }
+                        lastTouchEnd = now;
+                    }, false);
+                    
+                    const viewport = document.querySelector('meta[name=viewport]');
+                    if (viewport) {
+                        viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+                    }
+                    
+                    console.log('🍎 iOS optimizations applied');
                 }
                 
-                console.log('🍎 iOS optimizations applied');
-            }
-            
-            // Welcome message for first time users
-            const isFirstTime = !loadData('completions') && !loadData('history');
-            if (isFirstTime) {
-                setTimeout(() => {
-                    showToast('🐢 Benvenuto in TurtleCare!');
-                }, 1000);
+                // Welcome message for first time users
+                const isFirstTime = !(await loadData('completions')) && !(await loadData('history'));
+                if (isFirstTime) {
+                    setTimeout(() => {
+                        showToast('🐢 Benvenuto in TurtleCare sincronizzato!');
+                    }, 1500);
+                }
+                
+            } catch (error) {
+                console.error('❌ Initialization error:', error);
+                showToast('⚠️ Modalità offline attiva');
             }
         });
+
+        // Add animation styles
+        const animationStyles = document.createElement('style');
+        animationStyles.textContent = `
+            @keyframes slideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(animationStyles);
     </script>
 </body>
 </html>
