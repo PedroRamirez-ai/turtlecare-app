@@ -129,6 +129,33 @@
             -webkit-border-radius: 10px;
         }
 
+        .password-input-container {
+            position: relative;
+            width: 100%;
+        }
+
+        .password-input-container input {
+            padding-right: 50px;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+
+        .password-toggle:hover {
+            background-color: rgba(102, 126, 234, 0.1);
+        }
+
         .form-group input:focus {
             outline: none;
             border-color: #667eea;
@@ -753,7 +780,12 @@
                 
                 <div class="form-group">
                     <label for="password">Password</label>
-                    <input type="password" id="password" required>
+                    <div class="password-input-container">
+                        <input type="password" id="password" required>
+                        <button type="button" class="password-toggle" onclick="togglePassword()">
+                            👁️
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="remember-group">
@@ -922,7 +954,7 @@
             }
         ];
 
-        // Authentication functions
+        // Enhanced authentication functions with better error handling
         async function attemptAutoLogin() {
             if (!window.firebaseAuth) return false;
 
@@ -952,7 +984,7 @@
                 return;
             }
 
-            const email = document.getElementById('email').value;
+            const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             const remember = document.getElementById('remember-credentials').checked;
 
@@ -963,8 +995,11 @@
 
             try {
                 showLoadingState(true);
+                hideError();
+                
                 const { auth, signInWithEmailAndPassword } = window.firebaseAuth;
                 
+                console.log('🔐 Attempting login for:', email);
                 await signInWithEmailAndPassword(auth, email, password);
                 
                 if (remember) {
@@ -973,24 +1008,52 @@
                     localStorage.removeItem('turtlecare_credentials');
                 }
 
-                hideError();
+                console.log('✅ Login successful');
             } catch (error) {
-                console.error('Login error:', error);
+                console.error('❌ Login error:', error);
                 let errorMessage = 'Errore di accesso. Verifica email e password.';
                 
-                if (error.code === 'auth/user-not-found') {
-                    errorMessage = 'Utente non trovato. Controlla la email.';
-                } else if (error.code === 'auth/wrong-password') {
-                    errorMessage = 'Password errata.';
-                } else if (error.code === 'auth/invalid-email') {
-                    errorMessage = 'Email non valida.';
-                } else if (error.code === 'auth/too-many-requests') {
-                    errorMessage = 'Troppi tentativi. Riprova più tardi.';
+                switch (error.code) {
+                    case 'auth/user-not-found':
+                        errorMessage = 'Utente non trovato. Controlla la email.';
+                        break;
+                    case 'auth/wrong-password':
+                        errorMessage = 'Password errata.';
+                        break;
+                    case 'auth/invalid-email':
+                        errorMessage = 'Email non valida.';
+                        break;
+                    case 'auth/too-many-requests':
+                        errorMessage = 'Troppi tentativi. Riprova più tardi.';
+                        break;
+                    case 'auth/invalid-credential':
+                        errorMessage = 'Credenziali non valide. Controlla email e password.';
+                        break;
+                    case 'auth/network-request-failed':
+                        errorMessage = 'Errore di rete. Controlla la connessione.';
+                        break;
+                    default:
+                        errorMessage = `Errore: ${error.message}`;
                 }
                 
                 showError(errorMessage);
             } finally {
                 showLoadingState(false);
+            }
+        }
+
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const toggleButton = document.querySelector('.password-toggle');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleButton.textContent = '🙈';
+                toggleButton.title = 'Nascondi password';
+            } else {
+                passwordInput.type = 'password';
+                toggleButton.textContent = '👁️';
+                toggleButton.title = 'Mostra password';
             }
         }
 
@@ -1721,6 +1784,7 @@
         window.completeTask = completeTask;
         window.saveNotes = saveNotes;
         window.logout = logout;
+        window.togglePassword = togglePassword;
     </script>
 </body>
 </html>Controllo temperatura, comportamento tartarughe, livello acqua',
