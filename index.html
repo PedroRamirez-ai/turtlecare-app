@@ -8,9 +8,40 @@
     <meta name="theme-color" content="#667eea">
     <title>TurtleCare - Planner Acquario</title>
     
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <!-- Firebase SDK v9 (modular) -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+        import { getDatabase, ref, set, get, onValue, serverTimestamp, off } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
+        
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDOuJZpnTbJBwCOQrC1mOaNb2aEZj_Kx7M",
+            authDomain: "turtlecare-sync.firebaseapp.com",
+            databaseURL: "https://turtlecare-sync-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "turtlecare-sync",
+            storageBucket: "turtlecare-sync.appspot.com",
+            messagingSenderId: "472819336842",
+            appId: "1:472819336842:web:3c7f8d9e2b1a4e6f5d2c9a"
+        };
+
+        // Initialize Firebase
+        let app, database;
+        let firebaseInitialized = false;
+        
+        try {
+            app = initializeApp(firebaseConfig);
+            database = getDatabase(app);
+            firebaseInitialized = true;
+            console.log('🔥 Firebase v9 inizializzato correttamente!');
+            window.firebaseDB = { database, ref, set, get, onValue, serverTimestamp, off };
+        } catch (error) {
+            console.error('❌ Errore inizializzazione Firebase:', error);
+            firebaseInitialized = false;
+            window.firebaseDB = null;
+        }
+        
+        window.firebaseInitialized = firebaseInitialized;
+    </script>
     
     <style>
         * {
@@ -53,6 +84,31 @@
             right: 20px;
             font-size: 12px;
             cursor: help;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.8);
+            font-weight: 600;
+        }
+
+        .connection-indicator.online {
+            color: #27ae60;
+        }
+
+        .connection-indicator.offline {
+            color: #e74c3c;
+        }
+
+        .connection-indicator.syncing {
+            color: #f39c12;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
         }
 
         .header h1 {
@@ -124,6 +180,12 @@
             margin-bottom: 15px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             border-left: 4px solid #3498db;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .task-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
         }
 
         .task-card.daily {
@@ -243,6 +305,11 @@
             padding: 15px;
             text-align: center;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
         }
 
         .stat-number {
@@ -414,6 +481,35 @@
             display: block;
         }
 
+        .sync-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #3498db;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            z-index: 3000;
+            font-size: 0.8rem;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+        }
+
+        .sync-notification.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .sync-notification.success {
+            background: #27ae60;
+        }
+
+        .sync-notification.error {
+            background: #e74c3c;
+        }
+
         /* iOS specific fixes */
         @supports (-webkit-appearance: none) {
             .btn, .tab, .close {
@@ -494,7 +590,10 @@
 <body>
     <div class="container">
         <div class="header">
-            <span id="connection-indicator" class="connection-indicator" title="Stato connessione">🟢</span>
+            <div id="connection-indicator" class="connection-indicator">
+                <span class="status-icon">🔴</span>
+                <span class="status-text">Offline</span>
+            </div>
             <h1>🐢 TurtleCare 🌊</h1>
             <p>Planner sincronizzato per l'acquario delle tue Mauremys</p>
         </div>
@@ -587,35 +686,16 @@
         </div>
     </div>
 
-    <script>
-        // Firebase Configuration (REALE)
-        const firebaseConfig = {
-            apiKey: "AIzaSyDOuJZpnTbJBwCOQrC1mOaNb2aEZj_Kx7M",
-            authDomain: "turtlecare-sync.firebaseapp.com",
-            databaseURL: "https://turtlecare-sync-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "turtlecare-sync",
-            storageBucket: "turtlecare-sync.appspot.com",
-            messagingSenderId: "472819336842",
-            appId: "1:472819336842:web:3c7f8d9e2b1a4e6f5d2c9a"
-        };
+    <!-- Sync Notification -->
+    <div id="sync-notification" class="sync-notification"></div>
 
-        // Initialize Firebase with error handling
-        let database;
-        let firebaseInitialized = false;
-        
-        try {
-            firebase.initializeApp(firebaseConfig);
-            database = firebase.database();
-            firebaseInitialized = true;
-            console.log('🔥 Firebase inizializzato correttamente!');
-        } catch (error) {
-            console.error('❌ Errore inizializzazione Firebase:', error);
-            firebaseInitialized = false;
-        }
-        
+    <script>
         // Global app state
-        let isOnline = true;
+        let isOnline = false;
         let localCache = {};
+        let syncListeners = {};
+        let lastSyncTime = 0;
+        let isSyncing = false;
 
         // Task definitions
         const maintenanceTasks = [
@@ -685,30 +765,43 @@
             }
         ];
 
-        // Enhanced Storage functions with Firebase
+        // Enhanced Storage functions with improved Firebase sync
         async function saveData(key, data) {
             try {
-                // Save to local cache immediately
+                // Save to local cache immediately for instant UI updates
                 localCache[key] = data;
-                
-                // Try to save to Firebase if initialized
-                if (firebaseInitialized && isOnline && database) {
-                    await database.ref(key).set({
-                        data: data,
-                        timestamp: firebase.database.ServerValue.TIMESTAMP,
-                        version: '1.0'
-                    });
-                    console.log(`✅ Data saved to cloud: ${key}`);
-                } else {
-                    console.log(`💾 Data cached locally: ${key}`);
-                }
                 
                 // Always save to localStorage as backup
                 localStorage.setItem(`turtlecare_${key}`, JSON.stringify(data));
+                
+                // Try to save to Firebase if available
+                if (window.firebaseInitialized && window.firebaseDB && isOnline) {
+                    const { database, ref, set, serverTimestamp } = window.firebaseDB;
+                    
+                    setSyncStatus('syncing');
+                    
+                    await set(ref(database, key), {
+                        data: data,
+                        timestamp: serverTimestamp(),
+                        version: '2.0',
+                        deviceId: getDeviceId()
+                    });
+                    
+                    console.log(`✅ Data synced to cloud: ${key}`);
+                    showSyncNotification('✅ Sincronizzato!', 'success');
+                    setSyncStatus('online');
+                } else {
+                    console.log(`💾 Data saved locally: ${key}`);
+                    setSyncStatus('offline');
+                }
+                
                 return true;
             } catch (error) {
                 console.error('❌ Save error:', error);
-                // Fallback to localStorage only
+                setSyncStatus('offline');
+                showSyncNotification('⚠️ Errore sincronizzazione', 'error');
+                
+                // Ensure localStorage backup always works
                 try {
                     localStorage.setItem(`turtlecare_${key}`, JSON.stringify(data));
                     localCache[key] = data;
@@ -722,19 +815,21 @@
 
         async function loadData(key) {
             try {
-                // Check local cache first
-                if (localCache[key]) {
+                // Check local cache first for instant loading
+                if (localCache[key] !== undefined) {
                     return localCache[key];
                 }
                 
                 // Try to load from Firebase if available
-                if (firebaseInitialized && isOnline && database) {
-                    const snapshot = await database.ref(key).once('value');
+                if (window.firebaseInitialized && window.firebaseDB && isOnline) {
+                    const { database, ref, get } = window.firebaseDB;
+                    
+                    const snapshot = await get(ref(database, key));
                     if (snapshot.exists()) {
-                        const firebaseData = snapshot.val().data;
-                        localCache[key] = firebaseData;
+                        const cloudData = snapshot.val();
+                        localCache[key] = cloudData.data;
                         console.log(`☁️ Data loaded from cloud: ${key}`);
-                        return firebaseData;
+                        return cloudData.data;
                     }
                 }
                 
@@ -767,100 +862,190 @@
             }
         }
 
-        // Real-time sync setup
+        // Device identification for better conflict resolution
+        function getDeviceId() {
+            let deviceId = localStorage.getItem('turtlecare_device_id');
+            if (!deviceId) {
+                deviceId = 'device_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+                localStorage.setItem('turtlecare_device_id', deviceId);
+            }
+            return deviceId;
+        }
+
+        // Enhanced real-time sync with better conflict resolution
         function setupRealtimeSync() {
-            if (!firebaseInitialized || !database) {
-                console.log('⚠️ Firebase non disponibile, sync disabilitata');
-                isOnline = false;
+            if (!window.firebaseInitialized || !window.firebaseDB) {
+                console.log('⚠️ Firebase non disponibile, modalità offline');
+                setSyncStatus('offline');
                 return;
             }
             
             try {
+                const { database, ref, onValue, off } = window.firebaseDB;
+                const currentDeviceId = getDeviceId();
+                
                 ['completions', 'history', 'notes'].forEach(key => {
-                    database.ref(key).on('value', (snapshot) => {
+                    // Clean up existing listeners
+                    if (syncListeners[key]) {
+                        off(syncListeners[key]);
+                    }
+                    
+                    // Set up new listener with conflict resolution
+                    const dataRef = ref(database, key);
+                    syncListeners[key] = dataRef;
+                    
+                    onValue(dataRef, (snapshot) => {
                         if (snapshot.exists()) {
-                            const newData = snapshot.val().data;
-                            if (JSON.stringify(localCache[key]) !== JSON.stringify(newData)) {
+                            const cloudData = snapshot.val();
+                            const newData = cloudData.data;
+                            const cloudTimestamp = cloudData.timestamp;
+                            const cloudDeviceId = cloudData.deviceId;
+                            
+                            // Skip if this update came from current device
+                            if (cloudDeviceId === currentDeviceId) {
+                                return;
+                            }
+                            
+                            // Check if we need to update local data
+                            const currentData = localCache[key];
+                            const hasChanges = JSON.stringify(currentData) !== JSON.stringify(newData);
+                            
+                            if (hasChanges) {
                                 localCache[key] = newData;
-                                console.log(`🔄 Real-time update: ${key}`);
+                                console.log(`🔄 Real-time update from ${cloudDeviceId}: ${key}`);
+                                
+                                // Update localStorage backup
+                                localStorage.setItem(`turtlecare_${key}`, JSON.stringify(newData));
                                 
                                 // Refresh current tab if needed
-                                const activeTab = document.querySelector('.tab.active');
-                                if (activeTab) {
-                                    const tabText = activeTab.textContent.toLowerCase();
-                                    if (tabText.includes('home') && key === 'completions') {
-                                        updateDashboard();
-                                    } else if (tabText.includes('storia') && key === 'history') {
-                                        renderHistory();
-                                    } else if (tabText.includes('note') && key === 'notes') {
-                                        loadNotes();
-                                    }
-                                }
+                                refreshCurrentTab(key);
                                 
-                                // Show sync notification
-                                showSyncNotification('🔄 Dati sincronizzati!');
+                                // Show sync notification (subtle)
+                                showSyncNotification('🔄 Aggiornato', 'success');
                             }
                         }
+                    }, (error) => {
+                        console.error(`❌ Sync error for ${key}:`, error);
+                        setSyncStatus('offline');
                     });
                 });
                 
-                // Connection status monitoring
-                database.ref('.info/connected').on('value', (snapshot) => {
-                    isOnline = snapshot.val();
-                    updateConnectionStatus();
+                // Enhanced connection monitoring
+                const connectedRef = ref(database, '.info/connected');
+                onValue(connectedRef, (snapshot) => {
+                    const connected = snapshot.val();
+                    isOnline = connected;
+                    
+                    if (connected) {
+                        console.log('🟢 Firebase connected');
+                        setSyncStatus('online');
+                        
+                        // Trigger a gentle sync check
+                        setTimeout(syncPendingChanges, 1000);
+                    } else {
+                        console.log('🔴 Firebase disconnected');
+                        setSyncStatus('offline');
+                    }
                 });
                 
-                console.log('🚀 Real-time sync enabled!');
+                console.log('🚀 Enhanced real-time sync enabled!');
+                setSyncStatus('online');
+                
             } catch (error) {
                 console.error('❌ Sync setup failed:', error);
-                isOnline = false;
-                updateConnectionStatus();
+                setSyncStatus('offline');
             }
         }
 
-        function updateConnectionStatus() {
+        // Refresh UI when data changes
+        function refreshCurrentTab(dataKey) {
+            const activeTab = document.querySelector('.tab.active');
+            if (!activeTab) return;
+            
+            const tabText = activeTab.textContent.toLowerCase();
+            
+            // Throttle refreshes to avoid spam
+            const now = Date.now();
+            if (now - lastSyncTime < 500) return;
+            lastSyncTime = now;
+            
+            if (tabText.includes('home') && dataKey === 'completions') {
+                updateDashboard();
+            } else if (tabText.includes('storia') && dataKey === 'history') {
+                renderHistory();
+            } else if (tabText.includes('note') && dataKey === 'notes') {
+                loadNotes();
+            } else if (tabText.includes('attività') && dataKey === 'completions') {
+                renderAllTasks();
+            }
+        }
+
+        // Sync any pending changes when coming back online
+        async function syncPendingChanges() {
+            if (!isOnline || !window.firebaseInitialized) return;
+            
+            try {
+                setSyncStatus('syncing');
+                
+                const keys = ['completions', 'history', 'notes'];
+                for (const key of keys) {
+                    const localData = localCache[key] || await loadData(key);
+                    if (localData) {
+                        await saveData(key, localData);
+                    }
+                }
+                
+                setSyncStatus('online');
+            } catch (error) {
+                console.error('❌ Sync pending changes failed:', error);
+                setSyncStatus('offline');
+            }
+        }
+
+        // Enhanced connection status with visual feedback
+        function setSyncStatus(status) {
             const indicator = document.getElementById('connection-indicator');
             if (!indicator) return;
             
-            if (isOnline) {
-                indicator.textContent = '🟢';
-                indicator.title = 'Connesso - Sincronizzazione attiva';
-            } else {
-                indicator.textContent = '🔴';
-                indicator.title = 'Offline - I dati verranno sincronizzati alla riconnessione';
+            const statusIcon = indicator.querySelector('.status-icon');
+            const statusText = indicator.querySelector('.status-text');
+            
+            indicator.className = `connection-indicator ${status}`;
+            
+            switch (status) {
+                case 'online':
+                    statusIcon.textContent = '🟢';
+                    statusText.textContent = 'Online';
+                    indicator.title = 'Connesso - Sincronizzazione attiva';
+                    break;
+                case 'offline':
+                    statusIcon.textContent = '🔴';
+                    statusText.textContent = 'Offline';
+                    indicator.title = 'Offline - I dati verranno sincronizzati alla riconnessione';
+                    break;
+                case 'syncing':
+                    statusIcon.textContent = '🟡';
+                    statusText.textContent = 'Sync...';
+                    indicator.title = 'Sincronizzazione in corso...';
+                    break;
             }
         }
 
-        function showSyncNotification(message) {
-            // Only show if not currently interacting
-            if (document.querySelector('.modal').style.display === 'block') return;
+        // Enhanced notification system
+        function showSyncNotification(message, type = 'info') {
+            const notification = document.getElementById('sync-notification');
+            if (!notification) return;
             
-            const existing = document.querySelector('.sync-toast');
-            if (existing) existing.remove();
+            // Clear existing timeout
+            if (notification.timeoutId) {
+                clearTimeout(notification.timeoutId);
+            }
             
-            const toast = document.createElement('div');
-            toast.className = 'sync-toast';
-            toast.innerHTML = message;
-            toast.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: #3498db;
-                color: white;
-                padding: 8px 16px;
-                border-radius: 20px;
-                font-weight: 600;
-                z-index: 3000;
-                font-size: 0.8rem;
-                opacity: 0.9;
-                animation: slideInRight 0.3s ease-out;
-            `;
+            notification.textContent = message;
+            notification.className = `sync-notification ${type} show`;
             
-            document.body.appendChild(toast);
-            
-            setTimeout(() => {
-                toast.style.animation = 'slideInRight 0.3s ease-out reverse';
-                setTimeout(() => toast.remove(), 300);
+            notification.timeoutId = setTimeout(() => {
+                notification.classList.remove('show');
             }, 2000);
         }
 
@@ -878,16 +1063,18 @@
             document.getElementById(tabName).classList.add('active');
             tabElement.classList.add('active');
             
-            // Update content
-            if (tabName === 'dashboard') {
-                updateDashboard();
-            } else if (tabName === 'tasks') {
-                renderAllTasks();
-            } else if (tabName === 'history') {
-                renderHistory();
-            } else if (tabName === 'notes') {
-                loadNotes();
-            }
+            // Update content with animation
+            setTimeout(() => {
+                if (tabName === 'dashboard') {
+                    updateDashboard();
+                } else if (tabName === 'tasks') {
+                    renderAllTasks();
+                } else if (tabName === 'history') {
+                    renderHistory();
+                } else if (tabName === 'notes') {
+                    loadNotes();
+                }
+            }, 50);
         }
 
         // Date calculations
@@ -948,24 +1135,34 @@
             const completions = await loadData('completions') || {};
             const history = await loadData('history') || [];
             
-            // Update stats
-            document.getElementById('tasks-completed').textContent = history.length;
+            // Update stats with smooth animations
+            const tasksCompletedEl = document.getElementById('tasks-completed');
+            const currentCount = parseInt(tasksCompletedEl.textContent) || 0;
+            const newCount = history.length;
+            
+            if (currentCount !== newCount) {
+                animateNumber(tasksCompletedEl, currentCount, newCount);
+            }
             
             // Days since water change
             const waterChangeCompletion = completions['water-change'];
+            const daysSinceEl = document.getElementById('days-since-water-change');
+            
             if (waterChangeCompletion) {
                 const lastChange = new Date(waterChangeCompletion);
                 const today = new Date();
                 const diffTime = today - lastChange;
                 const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                document.getElementById('days-since-water-change').textContent = diffDays;
+                daysSinceEl.textContent = diffDays;
             } else {
-                document.getElementById('days-since-water-change').textContent = '∞';
+                daysSinceEl.textContent = '∞';
             }
             
-            // Filter status
+            // Filter status with color coding
             const filterCompletion = completions['filter-cleaning'];
+            const filterEl = document.getElementById('filter-health');
             let filterStatus = '🔴';
+            
             if (filterCompletion) {
                 const lastFilter = new Date(filterCompletion);
                 const today = new Date();
@@ -974,7 +1171,7 @@
                 if (diffDays < 20) filterStatus = '🟢';
                 else if (diffDays < 30) filterStatus = '🟡';
             }
-            document.getElementById('filter-health').textContent = filterStatus;
+            filterEl.textContent = filterStatus;
             
             // Urgent tasks
             const urgentContainer = document.getElementById('urgent-tasks');
@@ -996,6 +1193,26 @@
             }
         }
 
+        // Smooth number animation
+        function animateNumber(element, start, end, duration = 500) {
+            const startTime = performance.now();
+            const difference = end - start;
+            
+            function updateNumber(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const currentValue = Math.round(start + (difference * progress));
+                
+                element.textContent = currentValue;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(updateNumber);
+                }
+            }
+            
+            requestAnimationFrame(updateNumber);
+        }
+
         async function renderAllTasks() {
             const container = document.getElementById('all-tasks');
             const taskCards = await Promise.all(maintenanceTasks.map(task => renderTaskCard(task)));
@@ -1011,7 +1228,10 @@
                 return;
             }
             
-            container.innerHTML = history.map(item => `
+            // Sort by date (most recent first)
+            const sortedHistory = [...history].sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            container.innerHTML = sortedHistory.map(item => `
                 <div class="history-item">
                     <div class="history-date">${new Date(item.date).toLocaleDateString('it-IT')} - ${item.taskName}</div>
                     <div class="history-task">${item.notes || 'Nessuna nota aggiuntiva'}</div>
@@ -1053,56 +1273,34 @@
                 return;
             }
             
-            // Save completion
-            const completions = await loadData('completions') || {};
-            completions[currentTaskId] = date;
-            await saveData('completions', completions);
-            
-            // Add to history
-            const history = await loadData('history') || [];
-            history.unshift({
-                id: Date.now(),
-                taskId: currentTaskId,
-                taskName: task.name,
-                date: date,
-                notes: notes,
-                timestamp: new Date().toISOString()
-            });
-            await saveData('history', history);
-            
-            closeModal();
-            await updateDashboard();
-            
-            // Show success
-            showToast('✅ Attività completata e salvata!');
-        }
-
-        function showToast(message) {
-            const existing = document.querySelector('.toast');
-            if (existing) existing.remove();
-            
-            const toast = document.createElement('div');
-            toast.className = 'toast';
-            toast.innerHTML = message;
-            toast.style.cssText = `
-                position: fixed;
-                top: 20px;
-                left: 50%;
-                transform: translateX(-50%);
-                background: #27ae60;
-                color: white;
-                padding: 10px 20px;
-                border-radius: 20px;
-                font-weight: 600;
-                z-index: 3000;
-                font-size: 0.9rem;
-            `;
-            
-            document.body.appendChild(toast);
-            
-            setTimeout(() => {
-                toast.remove();
-            }, 2500);
+            try {
+                // Save completion
+                const completions = await loadData('completions') || {};
+                completions[currentTaskId] = date;
+                await saveData('completions', completions);
+                
+                // Add to history
+                const history = await loadData('history') || [];
+                history.unshift({
+                    id: Date.now(),
+                    taskId: currentTaskId,
+                    taskName: task.name,
+                    date: date,
+                    notes: notes,
+                    timestamp: new Date().toISOString()
+                });
+                await saveData('history', history);
+                
+                closeModal();
+                await updateDashboard();
+                
+                // Show success
+                showSyncNotification('✅ Attività completata!', 'success');
+                
+            } catch (error) {
+                console.error('❌ Error completing task:', error);
+                showSyncNotification('❌ Errore nel salvare', 'error');
+            }
         }
 
         // Notes functions
@@ -1113,17 +1311,23 @@
                 return;
             }
             
-            const savedNotes = await loadData('notes') || [];
-            savedNotes.unshift({
-                id: Date.now(),
-                text: notesText,
-                date: new Date().toISOString()
-            });
-            
-            await saveData('notes', savedNotes);
-            document.getElementById('notes-text').value = '';
-            await loadNotes();
-            showToast('📝 Nota salvata e sincronizzata!');
+            try {
+                const savedNotes = await loadData('notes') || [];
+                savedNotes.unshift({
+                    id: Date.now(),
+                    text: notesText,
+                    date: new Date().toISOString()
+                });
+                
+                await saveData('notes', savedNotes);
+                document.getElementById('notes-text').value = '';
+                await loadNotes();
+                showSyncNotification('📝 Nota salvata!', 'success');
+                
+            } catch (error) {
+                console.error('❌ Error saving note:', error);
+                showSyncNotification('❌ Errore nel salvare', 'error');
+            }
         }
 
         async function loadNotes() {
@@ -1150,20 +1354,29 @@
                 `).join('');
         }
 
-        // Initialize
+        // Initialize app
         document.addEventListener('DOMContentLoaded', async function() {
             try {
-                // Setup Firebase real-time sync
+                console.log('🐢 Initializing TurtleCare Enhanced...');
+                
+                // Wait for Firebase to be ready
+                let attempts = 0;
+                while (!window.firebaseInitialized && attempts < 10) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+                
+                // Setup real-time sync
                 setupRealtimeSync();
                 
                 // Load initial data
                 await updateDashboard();
-                updateConnectionStatus();
                 
-                console.log('🐢 TurtleCare app con Firebase inizializzata!');
+                console.log('🚀 TurtleCare Enhanced initialized successfully!');
                 
-                // iOS specific fixes
+                // iOS specific optimizations
                 if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+                    // Prevent double-tap zoom
                     let lastTouchEnd = 0;
                     document.addEventListener('touchend', function (event) {
                         const now = (new Date()).getTime();
@@ -1173,6 +1386,7 @@
                         lastTouchEnd = now;
                     }, false);
                     
+                    // Optimize viewport for iOS
                     const viewport = document.querySelector('meta[name=viewport]');
                     if (viewport) {
                         viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
@@ -1185,25 +1399,54 @@
                 const isFirstTime = !(await loadData('completions')) && !(await loadData('history'));
                 if (isFirstTime) {
                     setTimeout(() => {
-                        showToast('🐢 Benvenuto in TurtleCare sincronizzato!');
+                        showSyncNotification('🐢 Benvenuto in TurtleCare!', 'success');
                     }, 1500);
                 }
                 
+                // Handle page visibility changes for better sync
+                document.addEventListener('visibilitychange', function() {
+                    if (!document.hidden && isOnline) {
+                        // Page became visible, check for updates
+                        setTimeout(syncPendingChanges, 500);
+                    }
+                });
+                
+                // Handle online/offline events
+                window.addEventListener('online', function() {
+                    console.log('🟢 Browser is back online');
+                    setTimeout(syncPendingChanges, 1000);
+                });
+                
+                window.addEventListener('offline', function() {
+                    console.log('🔴 Browser went offline');
+                    setSyncStatus('offline');
+                });
+                
             } catch (error) {
                 console.error('❌ Initialization error:', error);
-                showToast('⚠️ Modalità offline attiva');
+                setSyncStatus('offline');
+                showSyncNotification('⚠️ Modalità offline', 'error');
             }
         });
 
-        // Add animation styles
-        const animationStyles = document.createElement('style');
-        animationStyles.textContent = `
-            @keyframes slideInRight {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            // Clean up Firebase listeners
+            if (window.firebaseDB && syncListeners) {
+                const { off } = window.firebaseDB;
+                Object.values(syncListeners).forEach(listener => {
+                    if (listener) off(listener);
+                });
             }
-        `;
-        document.head.appendChild(animationStyles);
+        });
+
+        // Expose functions to global scope for onclick handlers
+        window.showTab = showTab;
+        window.openTaskModal = openTaskModal;
+        window.closeModal = closeModal;
+        window.closeModalOnBackground = closeModalOnBackground;
+        window.completeTask = completeTask;
+        window.saveNotes = saveNotes;
     </script>
 </body>
-</html>
+</html>'
