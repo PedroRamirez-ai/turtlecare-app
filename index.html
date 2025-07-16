@@ -13,15 +13,17 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            user-select: none;
+            -webkit-tap-highlight-color: rgba(0,0,0,0.1);
         }
 
         input, textarea {
             -webkit-user-select: text;
             user-select: text;
+        }
+
+        .tab, .btn, .close {
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         body {
@@ -642,7 +644,10 @@
                 <label>Note aggiuntive:</label>
                 <textarea id="modal-notes" rows="3" placeholder="Eventuali osservazioni..."></textarea>
             </div>
-            <button class="btn btn-success" onclick="completeTask()">✅ Conferma Completamento</button>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-primary" onclick="closeModal()" style="flex: 1;">❌ Annulla</button>
+                <button class="btn btn-success" onclick="completeTask()" style="flex: 1;">✅ Conferma</button>
+            </div>
         </div>
     </div>
 
