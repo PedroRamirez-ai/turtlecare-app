@@ -12,6 +12,7 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
         import { getDatabase, ref, set, get, onValue, serverTimestamp, off } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js';
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
         
         // Firebase Configuration
         const firebaseConfig = {
@@ -25,19 +26,22 @@
         };
 
         // Initialize Firebase
-        let app, database;
+        let app, database, auth;
         let firebaseInitialized = false;
         
         try {
             app = initializeApp(firebaseConfig);
             database = getDatabase(app);
+            auth = getAuth(app);
             firebaseInitialized = true;
-            console.log('🔥 Firebase v9 inizializzato correttamente!');
+            console.log('🔥 Firebase con Auth inizializzato!');
             window.firebaseDB = { database, ref, set, get, onValue, serverTimestamp, off };
+            window.firebaseAuth = { auth, signInWithEmailAndPassword, signOut, onAuthStateChanged };
         } catch (error) {
             console.error('❌ Errore inizializzazione Firebase:', error);
             firebaseInitialized = false;
             window.firebaseDB = null;
+            window.firebaseAuth = null;
         }
         
         window.firebaseInitialized = firebaseInitialized;
@@ -68,6 +72,153 @@
             padding: 15px;
         }
 
+        /* Login Screen */
+        .login-screen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .login-card h1 {
+            color: #2c3e50;
+            font-size: 2rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .login-card p {
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 0.9rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 0.9rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ecf0f1;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+            -webkit-appearance: none;
+            -webkit-border-radius: 10px;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .remember-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 25px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .remember-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin: 0;
+            cursor: pointer;
+            accent-color: #667eea;
+            -webkit-appearance: auto;
+            appearance: auto;
+        }
+
+        .remember-group label {
+            cursor: pointer;
+            margin: 0;
+            color: #2c3e50;
+        }
+
+        .login-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s ease;
+            -webkit-appearance: none;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .login-btn:active {
+            transform: scale(0.98);
+        }
+
+        .login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            background: #e74c3c;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .loading-spinner {
+            display: none;
+            margin: 10px auto;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Main App (hidden initially) */
+        .main-app {
+            display: none;
+        }
+
         .header {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
@@ -76,6 +227,28 @@
             text-align: center;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
             position: relative;
+        }
+
+        .user-info {
+            position: absolute;
+            top: 15px;
+            left: 20px;
+            font-size: 0.8rem;
+            color: #7f8c8d;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logout-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            font-weight: 600;
         }
 
         .connection-indicator {
@@ -415,36 +588,6 @@
             text-align: center;
         }
 
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #2c3e50;
-            font-size: 0.9rem;
-        }
-
-        .form-group input,
-        .form-group textarea {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid #ecf0f1;
-            border-radius: 6px;
-            font-family: inherit;
-            font-size: 16px;
-            -webkit-appearance: none;
-            -webkit-border-radius: 6px;
-        }
-
-        .form-group input:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
         .modal-buttons {
             display: flex;
             gap: 10px;
@@ -512,7 +655,7 @@
 
         /* iOS specific fixes */
         @supports (-webkit-appearance: none) {
-            .btn, .tab, .close {
+            .btn, .tab, .close, .login-btn {
                 -webkit-appearance: none;
             }
             
@@ -523,6 +666,8 @@
             
             /* Prevent iOS zoom on input focus */
             input[type="text"], 
+            input[type="email"],
+            input[type="password"],
             input[type="date"], 
             textarea {
                 font-size: 16px !important;
@@ -558,10 +703,14 @@
             .stats-grid {
                 grid-template-columns: 1fr 1fr;
             }
+
+            .login-card {
+                padding: 30px 20px;
+            }
         }
 
         /* Prevent text selection on UI elements */
-        .tab, .btn, .close, .stat-card {
+        .tab, .btn, .close, .stat-card, .login-btn {
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
@@ -588,77 +737,117 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <div id="connection-indicator" class="connection-indicator">
-                <span class="status-icon">🔴</span>
-                <span class="status-text">Offline</span>
-            </div>
+    <!-- Login Screen -->
+    <div id="login-screen" class="login-screen">
+        <div class="login-card">
             <h1>🐢 TurtleCare 🌊</h1>
-            <p>Planner sincronizzato per l'acquario delle tue Mauremys</p>
-        </div>
-
-        <div class="content">
-            <!-- Dashboard Tab -->
-            <div id="dashboard" class="tab-content active">
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-number" id="tasks-completed">0</div>
-                        <div class="stat-label">Attività Completate</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="days-since-water-change">0</div>
-                        <div class="stat-label">Giorni dall'ultimo cambio acqua</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="filter-health">🟢</div>
-                        <div class="stat-label">Stato Filtro</div>
-                    </div>
+            <p>Accedi per sincronizzare i dati delle tue tartarughe</p>
+            
+            <div id="error-message" class="error-message"></div>
+            
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" required>
                 </div>
-
-                <h3 class="section-title">⚠️ Attività in Scadenza</h3>
-                <div id="urgent-tasks"></div>
-            </div>
-
-            <!-- Tasks Tab -->
-            <div id="tasks" class="tab-content">
-                <h3 class="section-title">📋 Tutte le Attività</h3>
-                <div id="all-tasks"></div>
-            </div>
-
-            <!-- History Tab -->
-            <div id="history" class="tab-content">
-                <h3 class="section-title">📊 Cronologia</h3>
-                <div id="history-list"></div>
-            </div>
-
-            <!-- Notes Tab -->
-            <div id="notes" class="tab-content">
-                <h3 class="section-title">📝 Note e Osservazioni</h3>
-                <textarea id="notes-text" class="notes-input" placeholder="Scrivi qui le tue osservazioni sulle tartarughe, qualità dell'acqua, comportamenti, ecc..."></textarea>
-                <button class="btn btn-primary" onclick="saveNotes()">💾 Salva Nota</button>
-                <div id="saved-notes" style="margin-top: 20px;"></div>
-            </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required>
+                </div>
+                
+                <div class="remember-group">
+                    <input type="checkbox" id="remember-credentials">
+                    <label for="remember-credentials">Ricorda credenziali su questo dispositivo</label>
+                </div>
+                
+                <button type="submit" class="login-btn" id="login-btn">
+                    🔑 Accedi
+                </button>
+                
+                <div class="loading-spinner" id="loading-spinner"></div>
+            </form>
         </div>
     </div>
 
-    <!-- Bottom Navigation -->
-    <div class="tabs">
-        <div class="tab active" onclick="showTab('dashboard', this)">
-            <div class="tab-icon">🏠</div>
-            <div>Home</div>
+    <!-- Main App -->
+    <div id="main-app" class="main-app">
+        <div class="container">
+            <div class="header">
+                <div class="user-info">
+                    <span id="user-email">👤</span>
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                </div>
+                <div id="connection-indicator" class="connection-indicator">
+                    <span class="status-icon">🔴</span>
+                    <span class="status-text">Offline</span>
+                </div>
+                <h1>🐢 TurtleCare 🌊</h1>
+                <p>Planner sincronizzato per l'acquario delle tue Mauremys</p>
+            </div>
+
+            <div class="content">
+                <!-- Dashboard Tab -->
+                <div id="dashboard" class="tab-content active">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number" id="tasks-completed">0</div>
+                            <div class="stat-label">Attività Completate</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="days-since-water-change">0</div>
+                            <div class="stat-label">Giorni dall'ultimo cambio acqua</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="filter-health">🟢</div>
+                            <div class="stat-label">Stato Filtro</div>
+                        </div>
+                    </div>
+
+                    <h3 class="section-title">⚠️ Attività in Scadenza</h3>
+                    <div id="urgent-tasks"></div>
+                </div>
+
+                <!-- Tasks Tab -->
+                <div id="tasks" class="tab-content">
+                    <h3 class="section-title">📋 Tutte le Attività</h3>
+                    <div id="all-tasks"></div>
+                </div>
+
+                <!-- History Tab -->
+                <div id="history" class="tab-content">
+                    <h3 class="section-title">📊 Cronologia</h3>
+                    <div id="history-list"></div>
+                </div>
+
+                <!-- Notes Tab -->
+                <div id="notes" class="tab-content">
+                    <h3 class="section-title">📝 Note e Osservazioni</h3>
+                    <textarea id="notes-text" class="notes-input" placeholder="Scrivi qui le tue osservazioni sulle tartarughe, qualità dell'acqua, comportamenti, ecc..."></textarea>
+                    <button class="btn btn-primary" onclick="saveNotes()">💾 Salva Nota</button>
+                    <div id="saved-notes" style="margin-top: 20px;"></div>
+                </div>
+            </div>
         </div>
-        <div class="tab" onclick="showTab('tasks', this)">
-            <div class="tab-icon">📋</div>
-            <div>Attività</div>
-        </div>
-        <div class="tab" onclick="showTab('history', this)">
-            <div class="tab-icon">📊</div>
-            <div>Storia</div>
-        </div>
-        <div class="tab" onclick="showTab('notes', this)">
-            <div class="tab-icon">📝</div>
-            <div>Note</div>
+
+        <!-- Bottom Navigation -->
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('dashboard', this)">
+                <div class="tab-icon">🏠</div>
+                <div>Home</div>
+            </div>
+            <div class="tab" onclick="showTab('tasks', this)">
+                <div class="tab-icon">📋</div>
+                <div>Attività</div>
+            </div>
+            <div class="tab" onclick="showTab('history', this)">
+                <div class="tab-icon">📊</div>
+                <div>Storia</div>
+            </div>
+            <div class="tab" onclick="showTab('notes', this)">
+                <div class="tab-icon">📝</div>
+                <div>Note</div>
+            </div>
         </div>
     </div>
 
@@ -695,45 +884,13 @@
         let localCache = {};
         let syncListeners = {};
         let lastSyncTime = 0;
-        let isSyncing = false;
+        let currentUser = null;
 
         // Task definitions
         const maintenanceTasks = [
             {
                 id: 'daily-check',
                 name: 'Controllo Quotidiano',
-                description: 'Controllo temperatura, comportamento tartarughe, livello acqua',
-                frequency: 'Giornaliero',
-                intervalDays: 1,
-                category: 'daily'
-            },
-            {
-                id: 'glass-cleaning',
-                name: 'Pulizia Vetri',
-                description: 'Pulizia vetri interni ed esterni, rimozione alghe',
-                frequency: 'Ogni 3-4 giorni',
-                intervalDays: 4,
-                category: 'weekly'
-            },
-            {
-                id: 'water-change',
-                name: 'Cambio Acqua Parziale',
-                description: '15-20% acqua ogni 12-18 giorni (con filtro + piante)',
-                frequency: 'Ogni 12-18 giorni',
-                intervalDays: 15,
-                category: 'weekly'
-            },
-            {
-                id: 'deep-cleaning',
-                name: 'Pulizia Approfondita',
-                description: 'Sifonatura fondo, pulizia decorazioni, controllo piante',
-                frequency: 'Ogni 14 giorni',
-                intervalDays: 14,
-                category: 'weekly'
-            },
-            {
-                id: 'filter-cleaning',
-                name: 'Pulizia Spugne Filtro',
                 description: 'Pulizia spugne Tetra EX Plus 700 con acqua acquario',
                 frequency: 'Ogni 3-4 settimane',
                 intervalDays: 25,
@@ -765,10 +922,137 @@
             }
         ];
 
-        // Enhanced Storage functions with improved Firebase sync
-        async function saveData(key, data) {
+        // Authentication functions
+        async function attemptAutoLogin() {
+            if (!window.firebaseAuth) return false;
+
             try {
-                // Save to local cache immediately for instant UI updates
+                const savedCredentials = localStorage.getItem('turtlecare_credentials');
+                if (!savedCredentials) return false;
+
+                const { email, password } = JSON.parse(savedCredentials);
+                const { auth, signInWithEmailAndPassword } = window.firebaseAuth;
+                
+                showLoadingState(true);
+                await signInWithEmailAndPassword(auth, email, password);
+                return true;
+            } catch (error) {
+                console.log('Auto-login failed:', error);
+                localStorage.removeItem('turtlecare_credentials');
+                return false;
+            } finally {
+                showLoadingState(false);
+            }
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            if (!window.firebaseAuth) {
+                showError('Errore di connessione. Riprova.');
+                return;
+            }
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const remember = document.getElementById('remember-credentials').checked;
+
+            if (!email || !password) {
+                showError('Inserisci email e password.');
+                return;
+            }
+
+            try {
+                showLoadingState(true);
+                const { auth, signInWithEmailAndPassword } = window.firebaseAuth;
+                
+                await signInWithEmailAndPassword(auth, email, password);
+                
+                if (remember) {
+                    localStorage.setItem('turtlecare_credentials', JSON.stringify({ email, password }));
+                } else {
+                    localStorage.removeItem('turtlecare_credentials');
+                }
+
+                hideError();
+            } catch (error) {
+                console.error('Login error:', error);
+                let errorMessage = 'Errore di accesso. Verifica email e password.';
+                
+                if (error.code === 'auth/user-not-found') {
+                    errorMessage = 'Utente non trovato. Controlla la email.';
+                } else if (error.code === 'auth/wrong-password') {
+                    errorMessage = 'Password errata.';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = 'Email non valida.';
+                } else if (error.code === 'auth/too-many-requests') {
+                    errorMessage = 'Troppi tentativi. Riprova più tardi.';
+                }
+                
+                showError(errorMessage);
+            } finally {
+                showLoadingState(false);
+            }
+        }
+
+        async function logout() {
+            if (!window.firebaseAuth) return;
+
+            try {
+                const { auth, signOut } = window.firebaseAuth;
+                await signOut(auth);
+                localStorage.removeItem('turtlecare_credentials');
+                showSyncNotification('👋 Logout effettuato', 'success');
+            } catch (error) {
+                console.error('Logout error:', error);
+                showSyncNotification('❌ Errore logout', 'error');
+            }
+        }
+
+        function showLoadingState(show) {
+            const spinner = document.getElementById('loading-spinner');
+            const button = document.getElementById('login-btn');
+            
+            if (show) {
+                spinner.style.display = 'block';
+                button.disabled = true;
+                button.textContent = 'Accesso in corso...';
+            } else {
+                spinner.style.display = 'none';
+                button.disabled = false;
+                button.textContent = '🔑 Accedi';
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.style.display = 'none';
+        }
+
+        function showLoginScreen() {
+            document.getElementById('login-screen').style.display = 'flex';
+            document.getElementById('main-app').style.display = 'none';
+        }
+
+        function showMainApp() {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('main-app').style.display = 'block';
+        }
+
+        // Enhanced Storage functions with Firebase auth
+        async function saveData(key, data) {
+            if (!currentUser) {
+                console.warn('No user authenticated');
+                return false;
+            }
+
+            try {
+                // Save to local cache immediately
                 localCache[key] = data;
                 
                 // Always save to localStorage as backup
@@ -784,7 +1068,7 @@
                         data: data,
                         timestamp: serverTimestamp(),
                         version: '2.0',
-                        deviceId: getDeviceId()
+                        userId: currentUser.uid
                     });
                     
                     console.log(`✅ Data synced to cloud: ${key}`);
@@ -801,7 +1085,6 @@
                 setSyncStatus('offline');
                 showSyncNotification('⚠️ Errore sincronizzazione', 'error');
                 
-                // Ensure localStorage backup always works
                 try {
                     localStorage.setItem(`turtlecare_${key}`, JSON.stringify(data));
                     localCache[key] = data;
@@ -815,13 +1098,13 @@
 
         async function loadData(key) {
             try {
-                // Check local cache first for instant loading
+                // Check local cache first
                 if (localCache[key] !== undefined) {
                     return localCache[key];
                 }
                 
-                // Try to load from Firebase if available
-                if (window.firebaseInitialized && window.firebaseDB && isOnline) {
+                // Try to load from Firebase if available and user is authenticated
+                if (window.firebaseInitialized && window.firebaseDB && isOnline && currentUser) {
                     const { database, ref, get } = window.firebaseDB;
                     
                     const snapshot = await get(ref(database, key));
@@ -846,7 +1129,6 @@
             } catch (error) {
                 console.error('❌ Load error:', error);
                 
-                // Final fallback to localStorage
                 try {
                     const localData = localStorage.getItem(`turtlecare_${key}`);
                     if (localData) {
@@ -862,27 +1144,16 @@
             }
         }
 
-        // Device identification for better conflict resolution
-        function getDeviceId() {
-            let deviceId = localStorage.getItem('turtlecare_device_id');
-            if (!deviceId) {
-                deviceId = 'device_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
-                localStorage.setItem('turtlecare_device_id', deviceId);
-            }
-            return deviceId;
-        }
-
-        // Enhanced real-time sync with better conflict resolution
+        // Enhanced real-time sync with authentication
         function setupRealtimeSync() {
-            if (!window.firebaseInitialized || !window.firebaseDB) {
-                console.log('⚠️ Firebase non disponibile, modalità offline');
+            if (!window.firebaseInitialized || !window.firebaseDB || !currentUser) {
+                console.log('⚠️ Firebase non disponibile o utente non autenticato');
                 setSyncStatus('offline');
                 return;
             }
             
             try {
                 const { database, ref, onValue, off } = window.firebaseDB;
-                const currentDeviceId = getDeviceId();
                 
                 ['completions', 'history', 'notes'].forEach(key => {
                     // Clean up existing listeners
@@ -890,7 +1161,6 @@
                         off(syncListeners[key]);
                     }
                     
-                    // Set up new listener with conflict resolution
                     const dataRef = ref(database, key);
                     syncListeners[key] = dataRef;
                     
@@ -898,30 +1168,21 @@
                         if (snapshot.exists()) {
                             const cloudData = snapshot.val();
                             const newData = cloudData.data;
-                            const cloudTimestamp = cloudData.timestamp;
-                            const cloudDeviceId = cloudData.deviceId;
+                            const cloudUserId = cloudData.userId;
                             
-                            // Skip if this update came from current device
-                            if (cloudDeviceId === currentDeviceId) {
-                                return;
-                            }
-                            
-                            // Check if we need to update local data
-                            const currentData = localCache[key];
-                            const hasChanges = JSON.stringify(currentData) !== JSON.stringify(newData);
-                            
-                            if (hasChanges) {
-                                localCache[key] = newData;
-                                console.log(`🔄 Real-time update from ${cloudDeviceId}: ${key}`);
+                            // Only process if data is from same user or system data
+                            if (!cloudUserId || cloudUserId === currentUser.uid) {
+                                const currentData = localCache[key];
+                                const hasChanges = JSON.stringify(currentData) !== JSON.stringify(newData);
                                 
-                                // Update localStorage backup
-                                localStorage.setItem(`turtlecare_${key}`, JSON.stringify(newData));
-                                
-                                // Refresh current tab if needed
-                                refreshCurrentTab(key);
-                                
-                                // Show sync notification (subtle)
-                                showSyncNotification('🔄 Aggiornato', 'success');
+                                if (hasChanges) {
+                                    localCache[key] = newData;
+                                    console.log(`🔄 Real-time update: ${key}`);
+                                    
+                                    localStorage.setItem(`turtlecare_${key}`, JSON.stringify(newData));
+                                    refreshCurrentTab(key);
+                                    showSyncNotification('🔄 Aggiornato', 'success');
+                                }
                             }
                         }
                     }, (error) => {
@@ -930,17 +1191,14 @@
                     });
                 });
                 
-                // Enhanced connection monitoring
+                // Connection monitoring
                 const connectedRef = ref(database, '.info/connected');
                 onValue(connectedRef, (snapshot) => {
-                    const connected = snapshot.val();
-                    isOnline = connected;
+                    isOnline = snapshot.val();
                     
-                    if (connected) {
+                    if (isOnline) {
                         console.log('🟢 Firebase connected');
                         setSyncStatus('online');
-                        
-                        // Trigger a gentle sync check
                         setTimeout(syncPendingChanges, 1000);
                     } else {
                         console.log('🔴 Firebase disconnected');
@@ -957,14 +1215,11 @@
             }
         }
 
-        // Refresh UI when data changes
         function refreshCurrentTab(dataKey) {
             const activeTab = document.querySelector('.tab.active');
             if (!activeTab) return;
             
             const tabText = activeTab.textContent.toLowerCase();
-            
-            // Throttle refreshes to avoid spam
             const now = Date.now();
             if (now - lastSyncTime < 500) return;
             lastSyncTime = now;
@@ -980,9 +1235,8 @@
             }
         }
 
-        // Sync any pending changes when coming back online
         async function syncPendingChanges() {
-            if (!isOnline || !window.firebaseInitialized) return;
+            if (!isOnline || !window.firebaseInitialized || !currentUser) return;
             
             try {
                 setSyncStatus('syncing');
@@ -1002,7 +1256,6 @@
             }
         }
 
-        // Enhanced connection status with visual feedback
         function setSyncStatus(status) {
             const indicator = document.getElementById('connection-indicator');
             if (!indicator) return;
@@ -1016,7 +1269,7 @@
                 case 'online':
                     statusIcon.textContent = '🟢';
                     statusText.textContent = 'Online';
-                    indicator.title = 'Connesso - Sincronizzazione attiva';
+                    indicator.title = 'Connesso - Sincronizzazione sicura attiva';
                     break;
                 case 'offline':
                     statusIcon.textContent = '🔴';
@@ -1031,12 +1284,10 @@
             }
         }
 
-        // Enhanced notification system
         function showSyncNotification(message, type = 'info') {
             const notification = document.getElementById('sync-notification');
             if (!notification) return;
             
-            // Clear existing timeout
             if (notification.timeoutId) {
                 clearTimeout(notification.timeoutId);
             }
@@ -1051,19 +1302,15 @@
 
         // Tab management
         function showTab(tabName, tabElement) {
-            // Hide all tabs
             const contents = document.querySelectorAll('.tab-content');
             contents.forEach(content => content.classList.remove('active'));
             
-            // Remove active from all tab buttons
             const tabs = document.querySelectorAll('.tab');
             tabs.forEach(tab => tab.classList.remove('active'));
             
-            // Show selected tab
             document.getElementById(tabName).classList.add('active');
             tabElement.classList.add('active');
             
-            // Update content with animation
             setTimeout(() => {
                 if (tabName === 'dashboard') {
                     updateDashboard();
@@ -1135,7 +1382,7 @@
             const completions = await loadData('completions') || {};
             const history = await loadData('history') || [];
             
-            // Update stats with smooth animations
+            // Update stats with animations
             const tasksCompletedEl = document.getElementById('tasks-completed');
             const currentCount = parseInt(tasksCompletedEl.textContent) || 0;
             const newCount = history.length;
@@ -1158,7 +1405,7 @@
                 daysSinceEl.textContent = '∞';
             }
             
-            // Filter status with color coding
+            // Filter status
             const filterCompletion = completions['filter-cleaning'];
             const filterEl = document.getElementById('filter-health');
             let filterStatus = '🔴';
@@ -1193,7 +1440,6 @@
             }
         }
 
-        // Smooth number animation
         function animateNumber(element, start, end, duration = 500) {
             const startTime = performance.now();
             const difference = end - start;
@@ -1228,7 +1474,6 @@
                 return;
             }
             
-            // Sort by date (most recent first)
             const sortedHistory = [...history].sort((a, b) => new Date(b.date) - new Date(a.date));
             
             container.innerHTML = sortedHistory.map(item => `
@@ -1274,12 +1519,10 @@
             }
             
             try {
-                // Save completion
                 const completions = await loadData('completions') || {};
                 completions[currentTaskId] = date;
                 await saveData('completions', completions);
                 
-                // Add to history
                 const history = await loadData('history') || [];
                 history.unshift({
                     id: Date.now(),
@@ -1287,14 +1530,14 @@
                     taskName: task.name,
                     date: date,
                     notes: notes,
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+                    completedBy: currentUser.email
                 });
                 await saveData('history', history);
                 
                 closeModal();
                 await updateDashboard();
                 
-                // Show success
                 showSyncNotification('✅ Attività completata!', 'success');
                 
             } catch (error) {
@@ -1316,7 +1559,8 @@
                 savedNotes.unshift({
                     id: Date.now(),
                     text: notesText,
-                    date: new Date().toISOString()
+                    date: new Date().toISOString(),
+                    author: currentUser.email
                 });
                 
                 await saveData('notes', savedNotes);
@@ -1348,7 +1592,7 @@
                             day: 'numeric',
                             hour: '2-digit',
                             minute: '2-digit'
-                        })}</div>
+                        })} ${note.author ? `- ${note.author.split('@')[0]}` : ''}</div>
                         <div class="history-task">${note.text}</div>
                     </div>
                 `).join('');
@@ -1357,26 +1601,63 @@
         // Initialize app
         document.addEventListener('DOMContentLoaded', async function() {
             try {
-                console.log('🐢 Initializing TurtleCare Enhanced...');
+                console.log('🐢 Initializing TurtleCare with Authentication...');
                 
                 // Wait for Firebase to be ready
                 let attempts = 0;
-                while (!window.firebaseInitialized && attempts < 10) {
+                while (!window.firebaseInitialized && attempts < 20) {
                     await new Promise(resolve => setTimeout(resolve, 100));
                     attempts++;
                 }
-                
-                // Setup real-time sync
-                setupRealtimeSync();
-                
-                // Load initial data
-                await updateDashboard();
-                
-                console.log('🚀 TurtleCare Enhanced initialized successfully!');
+
+                if (!window.firebaseAuth) {
+                    showError('Errore di connessione a Firebase. Ricarica la pagina.');
+                    return;
+                }
+
+                // Setup authentication state listener
+                const { auth, onAuthStateChanged } = window.firebaseAuth;
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        // User is signed in
+                        currentUser = user;
+                        document.getElementById('user-email').textContent = `👤 ${user.email.split('@')[0]}`;
+                        
+                        showMainApp();
+                        setupRealtimeSync();
+                        await updateDashboard();
+                        
+                        console.log('✅ User authenticated:', user.email);
+                    } else {
+                        // User is signed out
+                        currentUser = null;
+                        showLoginScreen();
+                        
+                        // Check for saved credentials
+                        const autoLogin = await attemptAutoLogin();
+                        if (!autoLogin) {
+                            // Fill saved email if available
+                            const savedCredentials = localStorage.getItem('turtlecare_credentials');
+                            if (savedCredentials) {
+                                try {
+                                    const { email } = JSON.parse(savedCredentials);
+                                    document.getElementById('email').value = email;
+                                    document.getElementById('remember-credentials').checked = true;
+                                } catch (e) {
+                                    localStorage.removeItem('turtlecare_credentials');
+                                }
+                            }
+                        }
+                        
+                        console.log('❌ User not authenticated');
+                    }
+                });
+
+                // Setup login form
+                document.getElementById('login-form').addEventListener('submit', handleLogin);
                 
                 // iOS specific optimizations
                 if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-                    // Prevent double-tap zoom
                     let lastTouchEnd = 0;
                     document.addEventListener('touchend', function (event) {
                         const now = (new Date()).getTime();
@@ -1386,7 +1667,6 @@
                         lastTouchEnd = now;
                     }, false);
                     
-                    // Optimize viewport for iOS
                     const viewport = document.querySelector('meta[name=viewport]');
                     if (viewport) {
                         viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
@@ -1395,18 +1675,9 @@
                     console.log('🍎 iOS optimizations applied');
                 }
                 
-                // Welcome message for first time users
-                const isFirstTime = !(await loadData('completions')) && !(await loadData('history'));
-                if (isFirstTime) {
-                    setTimeout(() => {
-                        showSyncNotification('🐢 Benvenuto in TurtleCare!', 'success');
-                    }, 1500);
-                }
-                
-                // Handle page visibility changes for better sync
+                // Handle page visibility changes
                 document.addEventListener('visibilitychange', function() {
-                    if (!document.hidden && isOnline) {
-                        // Page became visible, check for updates
+                    if (!document.hidden && isOnline && currentUser) {
                         setTimeout(syncPendingChanges, 500);
                     }
                 });
@@ -1414,7 +1685,9 @@
                 // Handle online/offline events
                 window.addEventListener('online', function() {
                     console.log('🟢 Browser is back online');
-                    setTimeout(syncPendingChanges, 1000);
+                    if (currentUser) {
+                        setTimeout(syncPendingChanges, 1000);
+                    }
                 });
                 
                 window.addEventListener('offline', function() {
@@ -1422,16 +1695,16 @@
                     setSyncStatus('offline');
                 });
                 
+                console.log('🚀 TurtleCare with Authentication initialized!');
+                
             } catch (error) {
                 console.error('❌ Initialization error:', error);
-                setSyncStatus('offline');
-                showSyncNotification('⚠️ Modalità offline', 'error');
+                showError('Errore di inizializzazione. Ricarica la pagina.');
             }
         });
 
         // Cleanup on page unload
         window.addEventListener('beforeunload', function() {
-            // Clean up Firebase listeners
             if (window.firebaseDB && syncListeners) {
                 const { off } = window.firebaseDB;
                 Object.values(syncListeners).forEach(listener => {
@@ -1440,13 +1713,46 @@
             }
         });
 
-        // Expose functions to global scope for onclick handlers
+        // Expose functions to global scope
         window.showTab = showTab;
         window.openTaskModal = openTaskModal;
         window.closeModal = closeModal;
         window.closeModalOnBackground = closeModalOnBackground;
         window.completeTask = completeTask;
         window.saveNotes = saveNotes;
+        window.logout = logout;
     </script>
 </body>
-</html>'
+</html>Controllo temperatura, comportamento tartarughe, livello acqua',
+                frequency: 'Giornaliero',
+                intervalDays: 1,
+                category: 'daily'
+            },
+            {
+                id: 'glass-cleaning',
+                name: 'Pulizia Vetri',
+                description: 'Pulizia vetri interni ed esterni, rimozione alghe',
+                frequency: 'Ogni 3-4 giorni',
+                intervalDays: 4,
+                category: 'weekly'
+            },
+            {
+                id: 'water-change',
+                name: 'Cambio Acqua Parziale',
+                description: '15-20% acqua ogni 12-18 giorni (con filtro + piante)',
+                frequency: 'Ogni 12-18 giorni',
+                intervalDays: 15,
+                category: 'weekly'
+            },
+            {
+                id: 'deep-cleaning',
+                name: 'Pulizia Approfondita',
+                description: 'Sifonatura fondo, pulizia decorazioni, controllo piante',
+                frequency: 'Ogni 14 giorni',
+                intervalDays: 14,
+                category: 'weekly'
+            },
+            {
+                id: 'filter-cleaning',
+                name: 'Pulizia Spugne Filtro',
+                description: '
