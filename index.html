@@ -22,6 +22,209 @@
             storageBucket: "turtlecare-sync.appspot.com",
             messagingSenderId: "472819336842",
             appId: "1:472819336842:web:3c7f8d9e2b1a4e6f5d2c9a"
+        }
+
+        // History editing functions
+        async function editHistoryItem(historyId) {
+            const history = await loadData('history') || [];
+            currentHistoryItem = history.find(item => item.id === historyId);
+            
+            if (!currentHistoryItem) {
+                alert('❌ Elemento non trovato!');
+                return;
+            }
+            
+            // Populate modal
+            document.getElementById('edit-history-task-name').value = currentHistoryItem.taskName;
+            document.getElementById('edit-history-date').value = currentHistoryItem.date;
+            
+            // Set user selection
+            selectedEditUser = currentHistoryItem.user || '';
+            document.querySelectorAll('#edit-history-modal .user-option').forEach(opt => {
+                opt.classList.remove('selected');
+                if (opt.classList.contains(selectedEditUser)) {
+                    opt.classList.add('selected');
+                }
+            });
+            
+            document.getElementById('edit-history-modal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        async function deleteHistoryItem(historyId) {
+            if (!confirm('🗑️ Sei sicuro di voler eliminare questo completamento?')) {
+                return;
+            }
+            
+            try {
+                const history = await loadData('history') || [];
+                const itemToDelete = history.find(item => item.id === historyId);
+                
+                if (!itemToDelete) {
+                    alert('❌ Elemento non trovato!');
+                    return;
+                }
+                
+                // Remove from history
+                const updatedHistory = history.filter(item => item.id !== historyId);
+                await saveData('history', updatedHistory);
+                
+                // Update completions (remove or set to previous completion)
+                const completions = await loadData('completions') || {};
+                const remainingCompletions = updatedHistory
+                    .filter(item => item.taskId === itemToDelete.taskId)
+                    .sort((a, b) => new Date(b.date) - new Date(a.date));
+                
+                if (remainingCompletions.length > 0) {
+                    // Set to most recent remaining completion
+                    completions[itemToDelete.taskId] = remainingCompletions[0].date;
+                } else {
+                    // No more completions, remove from completions
+                    delete completions[itemToDelete.taskId];
+                }
+                
+                await saveData('completions', completions);
+                
+                // Refresh UI
+                await renderHistory();
+                await renderCalendar(); // Update calendar
+                
+                showSyncNotification('🗑️ Completamento eliminato!', 'success');
+                
+            } catch (error) {
+                console.error('❌ Error deleting history item:', error);
+                showSyncNotification('❌ Errore nell\'eliminazione', 'error');
+            }
+        }
+
+        function closeEditHistoryModal() {
+            document.getElementById('edit-history-modal').style.display = 'none';
+            document.body.style.overflow = '';
+            currentHistoryItem = null;
+            selectedEditUser = '';
+        }
+
+        function closeEditHistoryModalOnBackground(event) {
+            if (event.target === event.currentTarget) {
+                closeEditHistoryModal();
+            }
+        }
+
+        async function saveHistoryEdit() {
+            const newDate = document.getElementById('edit-history-date').value;
+            
+            if (!newDate) {
+                alert('⚠️ Seleziona una data!');
+                return;
+            }
+            
+            if (!selectedEditUser) {
+                alert('⚠️ Seleziona chi ha completato l\'attività!');
+                return;
+            }
+            
+            try {
+                const history = await loadData('history') || [];
+                const historyIndex = history.findIndex(item => item.id === currentHistoryItem.id);
+                
+                if (historyIndex === -1) {
+                    alert('❌ Elemento non trovato!');
+                    return;
+                }
+                
+                // Update history item
+                history[historyIndex] = {
+                    ...currentHistoryItem,
+                    date: newDate,
+                    user: selectedEditUser,
+                    timestamp: new Date().toISOString() // Update timestamp
+                };
+                
+                await saveData('history', history);
+                
+                // Update completions with the most recent date for this task
+                const completions = await loadData('completions') || {};
+                const taskCompletions = history
+                    .filter(item => item.taskId === currentHistoryItem.taskId)
+                    .sort((a, b) => new Date(b.date) - new Date(a.date));
+                
+                if (taskCompletions.length > 0) {
+                    completions[currentHistoryItem.taskId] = taskCompletions[0].date;
+                    await saveData('completions', completions);
+                }
+                
+                closeEditHistoryModal();
+                
+                // Refresh UI
+                await renderHistory();
+                await renderCalendar(); // Update calendar
+                
+                showSyncNotification('✏️ Completamento modificato!', 'success');
+                
+            } catch (error) {
+                console.error('❌ Error saving history edit:', error);
+                showSyncNotification('❌ Errore nel salvare', 'error');
+            }
+        }
+
+        // Interval editing functions
+        function openIntervalModal(taskId) {
+            currentIntervalTaskId = taskId;
+            const task = maintenanceTasks.find(t => t.id === taskId);
+            
+            document.getElementById('interval-task-name').value = task.name;
+            document.getElementById('interval-days').value = task.intervalDays;
+            document.getElementById('interval-description').value = task.frequency;
+            
+            document.getElementById('interval-modal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeIntervalModal() {
+            document.getElementById('interval-modal').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        function closeIntervalModalOnBackground(event) {
+            if (event.target === event.currentTarget) {
+                closeIntervalModal();
+            }
+        }
+
+        async function saveInterval() {
+            const intervalDays = parseInt(document.getElementById('interval-days').value);
+            const frequency = document.getElementById('interval-description').value.trim();
+            
+            if (!intervalDays || intervalDays < 1) {
+                alert('⚠️ Inserisci un numero di giorni valido!');
+                return;
+            }
+            
+            if (!frequency) {
+                alert('⚠️ Inserisci una descrizione della frequenza!');
+                return;
+            }
+            
+            try {
+                await saveCustomInterval(currentIntervalTaskId, intervalDays, frequency);
+                closeIntervalModal();
+                
+                // Refresh current tab
+                const activeTab = document.querySelector('.tab.active');
+                const tabText = activeTab.textContent.toLowerCase();
+                
+                if (tabText.includes('calendario')) {
+                    await renderCalendar();
+                } else if (tabText.includes('attività')) {
+                    await renderAllTasks();
+                }
+                
+                showSyncNotification('✏️ Intervallo aggiornato!', 'success');
+                
+            } catch (error) {
+                console.error('❌ Error saving interval:', error);
+                showSyncNotification('❌ Errore nel salvare', 'error');
+            }
         };
 
         // Initialize Firebase
@@ -254,6 +457,7 @@
         .calendar-day:hover {
             background: #f8f9fa;
             transform: scale(1.02);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
         .calendar-day.other-month {
@@ -351,6 +555,21 @@
             border-radius: 12px;
             font-size: 0.7rem;
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .task-frequency:hover {
+            background: #d5dbdb;
+            transform: scale(1.05);
+        }
+
+        .edit-icon {
+            font-size: 0.8rem;
+            opacity: 0.7;
         }
 
         .task-description {
@@ -440,6 +659,45 @@
             margin-bottom: 10px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             border-left: 4px solid #3498db;
+            position: relative;
+        }
+
+        .history-actions {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            gap: 8px;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+
+        .history-item:hover .history-actions {
+            opacity: 1;
+        }
+
+        .history-action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+        }
+
+        .history-action-btn:hover {
+            background: rgba(0, 0, 0, 0.1);
+            transform: scale(1.1);
+        }
+
+        .history-action-btn.edit {
+            color: #3498db;
+        }
+
+        .history-action-btn.delete {
+            color: #e74c3c;
         }
 
         .history-date {
@@ -657,6 +915,95 @@
             background: #e74c3c;
         }
 
+        /* Day popup styles */
+        .day-popup {
+            position: absolute;
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+            z-index: 3000;
+            min-width: 250px;
+            max-width: 300px;
+            border: 2px solid #667eea;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        .day-popup.show {
+            opacity: 1;
+            transform: scale(1);
+            pointer-events: auto;
+        }
+
+        .day-popup-header {
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #ecf0f1;
+            font-size: 1rem;
+        }
+
+        .day-popup-task {
+            padding: 8px 0;
+            border-bottom: 1px solid #f8f9fa;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .day-popup-task:last-child {
+            border-bottom: none;
+        }
+
+        .task-category-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .task-category-dot.daily { background: #27ae60; }
+        .task-category-dot.weekly { background: #3498db; }
+        .task-category-dot.monthly { background: #f39c12; }
+        .task-category-dot.quarterly { background: #e74c3c; }
+
+        .day-popup-task-name {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 0.85rem;
+        }
+
+        .day-popup-close {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            cursor: pointer;
+            color: #95a5a6;
+            font-size: 1.2rem;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .day-popup-close:hover {
+            background: rgba(0, 0, 0, 0.1);
+            color: #e74c3c;
+        }
+
+        .empty-day {
+            color: #95a5a6;
+            font-style: italic;
+            font-size: 0.85rem;
+        }
+
         /* Mobile optimizations */
         @media (max-width: 480px) {
             .container {
@@ -807,6 +1154,73 @@
             <div class="modal-buttons">
                 <button class="btn btn-cancel" onclick="closeModal()">❌ Annulla</button>
                 <button class="btn" onclick="completeTask()">✅ Conferma</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Day Popup -->
+    <div id="day-popup" class="day-popup">
+        <div class="day-popup-close" onclick="closeDayPopup()">×</div>
+        <div class="day-popup-header" id="day-popup-header"></div>
+        <div id="day-popup-content"></div>
+    </div>
+
+    <!-- Edit Interval Modal -->
+    <div id="interval-modal" class="modal" onclick="closeIntervalModalOnBackground(event)">
+        <div class="modal-content">
+            <span class="close" onclick="closeIntervalModal()">&times;</span>
+            <h3>✏️ Modifica Intervallo</h3>
+            
+            <div class="form-group">
+                <label>Attività:</label>
+                <input type="text" id="interval-task-name" readonly>
+            </div>
+            <div class="form-group">
+                <label>Nuovo intervallo (giorni):</label>
+                <input type="number" id="interval-days" min="1" max="365">
+            </div>
+            <div class="form-group">
+                <label>Descrizione frequenza:</label>
+                <input type="text" id="interval-description" placeholder="es. Ogni 5 giorni">
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="btn btn-cancel" onclick="closeIntervalModal()">❌ Annulla</button>
+                <button class="btn btn-primary" onclick="saveInterval()">💾 Salva</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit History Modal -->
+    <div id="edit-history-modal" class="modal" onclick="closeEditHistoryModalOnBackground(event)">
+        <div class="modal-content">
+            <span class="close" onclick="closeEditHistoryModal()">&times;</span>
+            <h3>✏️ Modifica Completamento</h3>
+            
+            <div class="form-group">
+                <label>Chi ha completato l'attività:</label>
+                <div class="user-selector">
+                    <div class="user-option francesco" onclick="selectEditUser('francesco', this)">
+                        👨 Francesco
+                    </div>
+                    <div class="user-option alessandra" onclick="selectEditUser('alessandra', this)">
+                        👩 Alessandra
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Attività:</label>
+                <input type="text" id="edit-history-task-name" readonly>
+            </div>
+            <div class="form-group">
+                <label>Data completamento:</label>
+                <input type="date" id="edit-history-date">
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="btn btn-cancel" onclick="closeEditHistoryModal()">❌ Annulla</button>
+                <button class="btn btn-primary" onclick="saveHistoryEdit()">💾 Salva Modifiche</button>
             </div>
         </div>
     </div>
@@ -1052,6 +1466,149 @@
             }
         }
 
+        // Interval editing functions
+        function openIntervalModal(taskId) {
+            currentIntervalTaskId = taskId;
+            const task = maintenanceTasks.find(t => t.id === taskId);
+            
+            document.getElementById('interval-task-name').value = task.name;
+            document.getElementById('interval-days').value = task.intervalDays;
+            document.getElementById('interval-description').value = task.frequency;
+            
+            document.getElementById('interval-modal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeIntervalModal() {
+            document.getElementById('interval-modal').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        function closeIntervalModalOnBackground(event) {
+            if (event.target === event.currentTarget) {
+                closeIntervalModal();
+            }
+        }
+
+        async function saveInterval() {
+            const intervalDays = parseInt(document.getElementById('interval-days').value);
+            const frequency = document.getElementById('interval-description').value.trim();
+            
+            if (!intervalDays || intervalDays < 1) {
+                alert('⚠️ Inserisci un numero di giorni valido!');
+                return;
+            }
+            
+            if (!frequency) {
+                alert('⚠️ Inserisci una descrizione della frequenza!');
+                return;
+            }
+            
+            try {
+                await saveCustomInterval(currentIntervalTaskId, intervalDays, frequency);
+                closeIntervalModal();
+                
+                // Refresh current tab
+                const activeTab = document.querySelector('.tab.active');
+                const tabText = activeTab.textContent.toLowerCase();
+                
+                if (tabText.includes('calendario')) {
+                    await renderCalendar();
+                } else if (tabText.includes('attività')) {
+                    await renderAllTasks();
+                }
+                
+                showSyncNotification('✏️ Intervallo aggiornato!', 'success');
+                
+            } catch (error) {
+                console.error('❌ Error saving interval:', error);
+                showSyncNotification('❌ Errore nel salvare', 'error');
+            }
+        }
+
+        // Day popup functions
+        function showDayPopup(date, dayElement) {
+            const popup = document.getElementById('day-popup');
+            const header = document.getElementById('day-popup-header');
+            const content = document.getElementById('day-popup-content');
+            
+            // Set header
+            header.textContent = date.toLocaleDateString('it-IT', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+            
+            // Get tasks for this day
+            getTasksForDate(date).then(tasks => {
+                if (tasks.length === 0) {
+                    content.innerHTML = '<div class="empty-day">Nessuna attività programmata</div>';
+                } else {
+                    content.innerHTML = tasks.map(task => `
+                        <div class="day-popup-task">
+                            <div class="task-category-dot ${task.category}"></div>
+                            <div class="day-popup-task-name">${task.name}</div>
+                        </div>
+                    `).join('');
+                }
+                
+                // Position popup
+                const rect = dayElement.getBoundingClientRect();
+                
+                let left = rect.left + (rect.width / 2) - 125; // Center popup
+                let top = rect.top - 20; // Above the day
+                
+                // Adjust if popup would go off screen
+                if (left < 10) left = 10;
+                if (left + 250 > window.innerWidth - 10) left = window.innerWidth - 260;
+                if (top < 10) top = rect.bottom + 10; // Below if no space above
+                
+                popup.style.left = left + 'px';
+                popup.style.top = top + 'px';
+                popup.classList.add('show');
+                
+                // Close on outside click
+                setTimeout(() => {
+                    document.addEventListener('click', closeDayPopupOnClick);
+                }, 100);
+            });
+        }
+
+        async function getTasksForDate(date) {
+            const completions = await loadData('completions') || {};
+            const tasksForDate = [];
+            
+            for (const task of maintenanceTasks) {
+                const nextDue = getNextDueDate(task.id, completions[task.id], task.intervalDays);
+                
+                // Confronta solo la data (senza orario)
+                const dueDateStr = nextDue.toDateString();
+                const targetDateStr = date.toDateString();
+                
+                console.log(`Task: ${task.name}, Due: ${dueDateStr}, Target: ${targetDateStr}`);
+                
+                if (dueDateStr === targetDateStr) {
+                    tasksForDate.push(task);
+                }
+            }
+            
+            return tasksForDate;
+        }
+
+        function closeDayPopup() {
+            const popup = document.getElementById('day-popup');
+            popup.classList.remove('show');
+            document.removeEventListener('click', closeDayPopupOnClick);
+        }
+
+        function closeDayPopupOnClick(event) {
+            const popup = document.getElementById('day-popup');
+            if (!popup.contains(event.target)) {
+                closeDayPopup();
+            }
+        }
+
         function setSyncStatus(status) {
             const indicator = document.getElementById('connection-indicator');
             if (!indicator) return;
@@ -1109,6 +1666,14 @@
             element.classList.add('selected');
         }
 
+        function selectEditUser(user, element) {
+            selectedEditUser = user;
+            document.querySelectorAll('#edit-history-modal .user-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            element.classList.add('selected');
+        }
+
         function showTab(tabName, tabElement) {
             const contents = document.querySelectorAll('.tab-content');
             contents.forEach(content => content.classList.remove('active'));
@@ -1134,9 +1699,13 @@
 
         function getNextDueDate(taskId, lastCompleted, intervalDays) {
             if (!lastCompleted) {
-                return new Date();
+                // Se non è mai stata completata, la prossima data è oggi
+                const today = new Date();
+                today.setHours(0, 0, 0, 0); // Reset dell'orario
+                return today;
             }
             const lastDate = new Date(lastCompleted);
+            lastDate.setHours(0, 0, 0, 0); // Reset dell'orario
             const nextDate = new Date(lastDate);
             nextDate.setDate(nextDate.getDate() + intervalDays);
             return nextDate;
@@ -1228,9 +1797,94 @@
                 }
                 
                 dayEl.appendChild(tasksContainer);
+                
+                // Add click event for day popup
+                const dayDate = new Date(currentDay); // Salva la data corrente
+                dayEl.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showDayPopup(dayDate, dayEl);
+                });
+                
                 grid.appendChild(dayEl);
                 
                 currentDay.setDate(currentDay.getDate() + 1);
+            }
+        }
+
+        // Day popup functions
+        function showDayPopup(date, dayElement) {
+            const popup = document.getElementById('day-popup');
+            const header = document.getElementById('day-popup-header');
+            const content = document.getElementById('day-popup-content');
+            
+            // Set header
+            header.textContent = date.toLocaleDateString('it-IT', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+            
+            // Get tasks for this day
+            getTasksForDate(date).then(tasks => {
+                if (tasks.length === 0) {
+                    content.innerHTML = '<div class="empty-day">Nessuna attività programmata</div>';
+                } else {
+                    content.innerHTML = tasks.map(task => `
+                        <div class="day-popup-task">
+                            <div class="task-category-dot ${task.category}"></div>
+                            <div class="day-popup-task-name">${task.name}</div>
+                        </div>
+                    `).join('');
+                }
+                
+                // Position popup
+                const rect = dayElement.getBoundingClientRect();
+                const popupRect = popup.getBoundingClientRect();
+                
+                let left = rect.left + (rect.width / 2) - 125; // Center popup
+                let top = rect.top - 20; // Above the day
+                
+                // Adjust if popup would go off screen
+                if (left < 10) left = 10;
+                if (left + 250 > window.innerWidth - 10) left = window.innerWidth - 260;
+                if (top < 10) top = rect.bottom + 10; // Below if no space above
+                
+                popup.style.left = left + 'px';
+                popup.style.top = top + 'px';
+                popup.classList.add('show');
+                
+                // Close on outside click
+                setTimeout(() => {
+                    document.addEventListener('click', closeDayPopupOnClick);
+                }, 100);
+            });
+        }
+
+        async function getTasksForDate(date) {
+            const completions = await loadData('completions') || {};
+            const tasksForDate = [];
+            
+            for (const task of maintenanceTasks) {
+                const nextDue = getNextDueDate(task.id, completions[task.id], task.intervalDays);
+                if (nextDue.toDateString() === date.toDateString()) {
+                    tasksForDate.push(task);
+                }
+            }
+            
+            return tasksForDate;
+        }
+
+        function closeDayPopup() {
+            const popup = document.getElementById('day-popup');
+            popup.classList.remove('show');
+            document.removeEventListener('click', closeDayPopupOnClick);
+        }
+
+        function closeDayPopupOnClick(event) {
+            const popup = document.getElementById('day-popup');
+            if (!popup.contains(event.target)) {
+                closeDayPopup();
             }
         }
 
@@ -1254,7 +1908,10 @@
                 <div class="task-card ${task.category}">
                     <div class="task-header">
                         <div class="task-title">${task.name}</div>
-                        <div class="task-frequency">${task.frequency}</div>
+                        <div class="task-frequency" onclick="openIntervalModal('${task.id}')">
+                            ${task.frequency}
+                            <span class="edit-icon">✏️</span>
+                        </div>
                     </div>
                     <div class="task-description">${task.description}</div>
                     ${showActions ? `
@@ -1287,6 +1944,14 @@
             
             container.innerHTML = sortedHistory.map(item => `
                 <div class="history-item">
+                    <div class="history-actions">
+                        <button class="history-action-btn edit" onclick="editHistoryItem(${item.id})" title="Modifica">
+                            ✏️
+                        </button>
+                        <button class="history-action-btn delete" onclick="deleteHistoryItem(${item.id})" title="Elimina">
+                            🗑️
+                        </button>
+                    </div>
                     <div class="history-date">
                         <span>${new Date(item.date).toLocaleDateString('it-IT')} - ${item.taskName}</span>
                         <span class="user-badge ${item.user || 'unknown'}">${item.user === 'francesco' ? '👨 Francesco' : item.user === 'alessandra' ? '👩 Alessandra' : '👤 Sconosciuto'}</span>
@@ -1295,7 +1960,180 @@
             `).join('');
         }
 
+        // History editing functions (defined before renderHistory uses them)
+        async function editHistoryItem(historyId) {
+            const history = await loadData('history') || [];
+            currentHistoryItem = history.find(item => item.id === historyId);
+            
+            if (!currentHistoryItem) {
+                alert('❌ Elemento non trovato!');
+                return;
+            }
+            
+            // Populate modal
+            document.getElementById('edit-history-task-name').value = currentHistoryItem.taskName;
+            document.getElementById('edit-history-date').value = currentHistoryItem.date;
+            
+            // Set user selection
+            selectedEditUser = currentHistoryItem.user || '';
+            document.querySelectorAll('#edit-history-modal .user-option').forEach(opt => {
+                opt.classList.remove('selected');
+                if (opt.classList.contains(selectedEditUser)) {
+                    opt.classList.add('selected');
+                }
+            });
+            
+            document.getElementById('edit-history-modal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        async function deleteHistoryItem(historyId) {
+            if (!confirm('🗑️ Sei sicuro di voler eliminare questo completamento?')) {
+                return;
+            }
+            
+            try {
+                const history = await loadData('history') || [];
+                const itemToDelete = history.find(item => item.id === historyId);
+                
+                if (!itemToDelete) {
+                    alert('❌ Elemento non trovato!');
+                    return;
+                }
+                
+                // Remove from history
+                const updatedHistory = history.filter(item => item.id !== historyId);
+                await saveData('history', updatedHistory);
+                
+                // Update completions (remove or set to previous completion)
+                const completions = await loadData('completions') || {};
+                const remainingCompletions = updatedHistory
+                    .filter(item => item.taskId === itemToDelete.taskId)
+                    .sort((a, b) => new Date(b.date) - new Date(a.date));
+                
+                if (remainingCompletions.length > 0) {
+                    // Set to most recent remaining completion
+                    completions[itemToDelete.taskId] = remainingCompletions[0].date;
+                } else {
+                    // No more completions, remove from completions
+                    delete completions[itemToDelete.taskId];
+                }
+                
+                await saveData('completions', completions);
+                
+                // Refresh UI
+                await renderHistory();
+                await renderCalendar(); // Update calendar
+                
+                showSyncNotification('🗑️ Completamento eliminato!', 'success');
+                
+            } catch (error) {
+                console.error('❌ Error deleting history item:', error);
+                showSyncNotification('❌ Errore nell\'eliminazione', 'error');
+            }
+        }
+
+        function closeEditHistoryModal() {
+            document.getElementById('edit-history-modal').style.display = 'none';
+            document.body.style.overflow = '';
+            currentHistoryItem = null;
+            selectedEditUser = '';
+        }
+
+        function closeEditHistoryModalOnBackground(event) {
+            if (event.target === event.currentTarget) {
+                closeEditHistoryModal();
+            }
+        }
+
+        async function saveHistoryEdit() {
+            const newDate = document.getElementById('edit-history-date').value;
+            
+            if (!newDate) {
+                alert('⚠️ Seleziona una data!');
+                return;
+            }
+            
+            if (!selectedEditUser) {
+                alert('⚠️ Seleziona chi ha completato l\'attività!');
+                return;
+            }
+            
+            try {
+                const history = await loadData('history') || [];
+                const historyIndex = history.findIndex(item => item.id === currentHistoryItem.id);
+                
+                if (historyIndex === -1) {
+                    alert('❌ Elemento non trovato!');
+                    return;
+                }
+                
+                // Update history item
+                history[historyIndex] = {
+                    ...currentHistoryItem,
+                    date: newDate,
+                    user: selectedEditUser,
+                    timestamp: new Date().toISOString() // Update timestamp
+                };
+                
+                await saveData('history', history);
+                
+                // Update completions with the most recent date for this task
+                const completions = await loadData('completions') || {};
+                const taskCompletions = history
+                    .filter(item => item.taskId === currentHistoryItem.taskId)
+                    .sort((a, b) => new Date(b.date) - new Date(a.date));
+                
+                if (taskCompletions.length > 0) {
+                    completions[currentHistoryItem.taskId] = taskCompletions[0].date;
+                    await saveData('completions', completions);
+                }
+                
+                closeEditHistoryModal();
+                
+                // Refresh UI
+                await renderHistory();
+                await renderCalendar(); // Update calendar
+                
+                showSyncNotification('✏️ Completamento modificato!', 'success');
+                
+            } catch (error) {
+                console.error('❌ Error saving history edit:', error);
+                showSyncNotification('❌ Errore nel salvare', 'error');
+            }
+        }
+
         let currentTaskId = '';
+        let currentIntervalTaskId = '';
+        let currentHistoryItem = null;
+        let selectedEditUser = '';
+
+        // Load custom intervals from storage
+        async function loadCustomIntervals() {
+            const customIntervals = await loadData('customIntervals') || {};
+            
+            // Update maintenanceTasks with custom intervals
+            maintenanceTasks.forEach(task => {
+                if (customIntervals[task.id]) {
+                    task.intervalDays = customIntervals[task.id].intervalDays;
+                    task.frequency = customIntervals[task.id].frequency;
+                }
+            });
+        }
+
+        // Save custom interval
+        async function saveCustomInterval(taskId, intervalDays, frequency) {
+            const customIntervals = await loadData('customIntervals') || {};
+            customIntervals[taskId] = { intervalDays, frequency };
+            await saveData('customIntervals', customIntervals);
+            
+            // Update the task in memory
+            const task = maintenanceTasks.find(t => t.id === taskId);
+            if (task) {
+                task.intervalDays = intervalDays;
+                task.frequency = frequency;
+            }
+        }
 
         function openTaskModal(taskId) {
             currentTaskId = taskId;
@@ -1440,6 +2278,9 @@
                     attempts++;
                 }
                 
+                // Load custom intervals first
+                await loadCustomIntervals();
+                
                 setupRealtimeSync();
                 await renderCalendar();
                 
@@ -1457,11 +2298,22 @@
         window.changeMonth = changeMonth;
         window.selectUser = selectUser;
         window.selectModalUser = selectModalUser;
+        window.selectEditUser = selectEditUser;
         window.openTaskModal = openTaskModal;
         window.closeModal = closeModal;
         window.closeModalOnBackground = closeModalOnBackground;
         window.completeTask = completeTask;
         window.saveNotes = saveNotes;
+        window.closeDayPopup = closeDayPopup;
+        window.openIntervalModal = openIntervalModal;
+        window.closeIntervalModal = closeIntervalModal;
+        window.closeIntervalModalOnBackground = closeIntervalModalOnBackground;
+        window.saveInterval = saveInterval;
+        window.editHistoryItem = editHistoryItem;
+        window.deleteHistoryItem = deleteHistoryItem;
+        window.closeEditHistoryModal = closeEditHistoryModal;
+        window.closeEditHistoryModalOnBackground = closeEditHistoryModalOnBackground;
+        window.saveHistoryEdit = saveHistoryEdit;
     </script>
 </body>
 </html>
