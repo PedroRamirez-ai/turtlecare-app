@@ -141,6 +141,36 @@
         </div>
     </div>
 
+    <!-- Edit Note Modal -->
+    <div id="edit-note-modal" class="modal" onclick="closeEditNoteModalOnBackground(event)">
+        <div class="modal-content">
+            <span class="close" onclick="closeEditNoteModal()">&times;</span>
+            <h3>✏️ Modifica Nota</h3>
+            
+            <div class="form-group">
+                <label>Chi ha scritto la nota:</label>
+                <div class="user-selector">
+                    <div class="user-option francesco" onclick="selectEditNoteUser('francesco', this)">
+                        👨 Francesco
+                    </div>
+                    <div class="user-option alessandra" onclick="selectEditNoteUser('alessandra', this)">
+                        👩 Alessandra
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Testo della nota:</label>
+                <textarea id="edit-note-text" rows="4" placeholder="Modifica il testo della nota..."></textarea>
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="btn btn-cancel" onclick="closeEditNoteModal()">❌ Annulla</button>
+                <button class="btn btn-primary" onclick="saveNoteEdit()">💾 Salva Modifiche</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Sync Notification -->
     <div id="sync-notification" class="sync-notification"></div>
 
@@ -158,6 +188,8 @@
         let currentIntervalTaskId = '';
         let currentHistoryItem = null;
         let selectedEditUser = '';
+        let currentNoteItem = null;
+        let selectedEditNoteUser = '';
 
         // Task definitions (rimosso il controllo quotidiano)
         const maintenanceTasks = [
@@ -492,6 +524,14 @@
         function selectEditUser(user, element) {
             selectedEditUser = user;
             document.querySelectorAll('#edit-history-modal .user-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            element.classList.add('selected');
+        }
+
+        function selectEditNoteUser(user, element) {
+            selectedEditNoteUser = user;
+            document.querySelectorAll('#edit-note-modal .user-option').forEach(opt => {
                 opt.classList.remove('selected');
             });
             element.classList.add('selected');
@@ -1252,8 +1292,16 @@
             
             container.innerHTML = '<h4 class="section-title">📋 Note Salvate</h4>' + 
                 savedNotes.map(note => `
-                    <div class="history-item">
-                        <div class="history-date">
+                    <div class="notes-item">
+                        <div class="notes-actions">
+                            <button class="notes-action-btn edit" onclick="editNote(${note.id})" title="Modifica">
+                                ✏️
+                            </button>
+                            <button class="notes-action-btn delete" onclick="deleteNote(${note.id})" title="Elimina">
+                                🗑️
+                            </button>
+                        </div>
+                        <div class="notes-date">
                             <span>${new Date(note.date).toLocaleDateString('it-IT', { 
                                 year: 'numeric', 
                                 month: 'long', 
@@ -1263,9 +1311,111 @@
                             })}</span>
                             <span class="user-badge ${note.user || 'unknown'}">${note.user === 'francesco' ? '👨 Francesco' : note.user === 'alessandra' ? '👩 Alessandra' : '👤 Sconosciuto'}</span>
                         </div>
-                        <div class="history-task">${note.text}</div>
+                        <div class="notes-text">${note.text}</div>
                     </div>
                 `).join('');
+        }
+
+        // Note editing functions
+        async function editNote(noteId) {
+            const savedNotes = await loadData('notes') || [];
+            currentNoteItem = savedNotes.find(note => note.id === noteId);
+            
+            if (!currentNoteItem) {
+                alert('❌ Nota non trovata!');
+                return;
+            }
+            
+            // Populate modal
+            document.getElementById('edit-note-text').value = currentNoteItem.text;
+            
+            // Set user selection
+            selectedEditNoteUser = currentNoteItem.user || '';
+            document.querySelectorAll('#edit-note-modal .user-option').forEach(opt => {
+                opt.classList.remove('selected');
+                if (opt.classList.contains(selectedEditNoteUser)) {
+                    opt.classList.add('selected');
+                }
+            });
+            
+            document.getElementById('edit-note-modal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        async function deleteNote(noteId) {
+            if (!confirm('🗑️ Sei sicuro di voler eliminare questa nota?')) {
+                return;
+            }
+            
+            try {
+                const savedNotes = await loadData('notes') || [];
+                const updatedNotes = savedNotes.filter(note => note.id !== noteId);
+                
+                await saveData('notes', updatedNotes);
+                await loadNotes();
+                
+                showSyncNotification('🗑️ Nota eliminata!', 'success');
+                
+            } catch (error) {
+                console.error('❌ Error deleting note:', error);
+                showSyncNotification('❌ Errore nell\'eliminazione', 'error');
+            }
+        }
+
+        function closeEditNoteModal() {
+            document.getElementById('edit-note-modal').style.display = 'none';
+            document.body.style.overflow = '';
+            currentNoteItem = null;
+            selectedEditNoteUser = '';
+        }
+
+        function closeEditNoteModalOnBackground(event) {
+            if (event.target === event.currentTarget) {
+                closeEditNoteModal();
+            }
+        }
+
+        async function saveNoteEdit() {
+            const newText = document.getElementById('edit-note-text').value.trim();
+            
+            if (!newText) {
+                alert('⚠️ Inserisci il testo della nota!');
+                return;
+            }
+            
+            if (!selectedEditNoteUser) {
+                alert('⚠️ Seleziona chi ha scritto la nota!');
+                return;
+            }
+            
+            try {
+                const savedNotes = await loadData('notes') || [];
+                const noteIndex = savedNotes.findIndex(note => note.id === currentNoteItem.id);
+                
+                if (noteIndex === -1) {
+                    alert('❌ Nota non trovata!');
+                    return;
+                }
+                
+                // Update note
+                savedNotes[noteIndex] = {
+                    ...currentNoteItem,
+                    text: newText,
+                    user: selectedEditNoteUser,
+                    editedAt: new Date().toISOString()
+                };
+                
+                await saveData('notes', savedNotes);
+                
+                closeEditNoteModal();
+                await loadNotes();
+                
+                showSyncNotification('✏️ Nota modificata!', 'success');
+                
+            } catch (error) {
+                console.error('❌ Error saving note edit:', error);
+                showSyncNotification('❌ Errore nel salvare', 'error');
+            }
         }
 
         document.addEventListener('DOMContentLoaded', async function() {
@@ -1300,6 +1450,7 @@
         window.selectUser = selectUser;
         window.selectModalUser = selectModalUser;
         window.selectEditUser = selectEditUser;
+        window.selectEditNoteUser = selectEditNoteUser;
         window.openTaskModal = openTaskModal;
         window.closeModal = closeModal;
         window.closeModalOnBackground = closeModalOnBackground;
@@ -1320,6 +1471,11 @@
         window.closeAddTaskModalOnBackground = closeAddTaskModalOnBackground;
         window.saveNewTask = saveNewTask;
         window.deleteTask = deleteTask;
+        window.editNote = editNote;
+        window.deleteNote = deleteNote;
+        window.closeEditNoteModal = closeEditNoteModal;
+        window.closeEditNoteModalOnBackground = closeEditNoteModalOnBackground;
+        window.saveNoteEdit = saveNoteEdit;
     </script>
 </body>
 </html><!DOCTYPE html>
@@ -1850,14 +2006,15 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             border-left: 4px solid #3498db;
             position: relative;
+            padding-right: 70px; /* Spazio per le icone */
         }
 
         .history-actions {
             position: absolute;
-            top: 15px;
-            right: 15px;
+            top: 10px;
+            right: 10px;
             display: flex;
-            gap: 8px;
+            gap: 5px;
             opacity: 0.7;
             transition: opacity 0.2s ease;
         }
@@ -1867,27 +2024,41 @@
         }
 
         .history-action-btn {
-            background: none;
-            border: none;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #ddd;
             cursor: pointer;
-            font-size: 1rem;
-            padding: 4px;
-            border-radius: 4px;
+            font-size: 0.9rem;
+            padding: 6px 8px;
+            border-radius: 6px;
             transition: all 0.2s ease;
             touch-action: manipulation;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .history-action-btn:hover {
-            background: rgba(0, 0, 0, 0.1);
-            transform: scale(1.1);
+            background: white;
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
         }
 
         .history-action-btn.edit {
             color: #3498db;
+            border-color: #3498db;
+        }
+
+        .history-action-btn.edit:hover {
+            background: #3498db;
+            color: white;
         }
 
         .history-action-btn.delete {
             color: #e74c3c;
+            border-color: #e74c3c;
+        }
+
+        .history-action-btn.delete:hover {
+            background: #e74c3c;
+            color: white;
         }
 
         .history-date {
@@ -1899,6 +2070,89 @@
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
+            padding-right: 10px; /* Spazio per le icone */
+        }
+
+        .notes-item {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #667eea;
+            position: relative;
+            padding-right: 70px; /* Spazio per le icone */
+        }
+
+        .notes-actions {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 5px;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+
+        .notes-item:hover .notes-actions {
+            opacity: 1;
+        }
+
+        .notes-action-btn {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #ddd;
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 6px 8px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .notes-action-btn:hover {
+            background: white;
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .notes-action-btn.edit {
+            color: #3498db;
+            border-color: #3498db;
+        }
+
+        .notes-action-btn.edit:hover {
+            background: #3498db;
+            color: white;
+        }
+
+        .notes-action-btn.delete {
+            color: #e74c3c;
+            border-color: #e74c3c;
+        }
+
+        .notes-action-btn.delete:hover {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .notes-date {
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            padding-right: 10px; /* Spazio per le icone */
+        }
+
+        .notes-text {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            margin-bottom: 5px;
         }
 
         .history-task {
