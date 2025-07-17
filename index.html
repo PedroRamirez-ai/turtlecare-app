@@ -173,6 +173,130 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         }
 
+        /* CALENDARIO STYLES */
+        .calendar-container {
+            margin-bottom: 20px;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 0 10px;
+        }
+
+        .calendar-nav {
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+        }
+
+        .calendar-nav:hover {
+            background: #5a6fd8;
+            transform: scale(1.1);
+        }
+
+        .calendar-nav:active {
+            transform: scale(0.95);
+        }
+
+        .calendar-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #2c3e50;
+            text-align: center;
+            flex: 1;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            background: #ecf0f1;
+            border-radius: 10px;
+            padding: 2px;
+            overflow: hidden;
+        }
+
+        .calendar-day-header {
+            background: #34495e;
+            color: white;
+            padding: 8px 4px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.7rem;
+        }
+
+        .calendar-day {
+            background: white;
+            min-height: 60px;
+            padding: 4px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .calendar-day:hover {
+            background: #f8f9fa;
+            transform: scale(1.02);
+        }
+
+        .calendar-day.other-month {
+            background: #f8f9fa;
+            color: #bdc3c7;
+        }
+
+        .calendar-day.today {
+            background: #667eea;
+            color: white;
+            font-weight: 700;
+        }
+
+        .calendar-day.today:hover {
+            background: #5a6fd8;
+        }
+
+        .day-number {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 2px;
+        }
+
+        .day-tasks {
+            width: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        .task-dot {
+            width: 100%;
+            height: 3px;
+            border-radius: 2px;
+            margin: 1px 0;
+        }
+
+        .task-dot.daily { background: #27ae60; }
+        .task-dot.weekly { background: #3498db; }
+        .task-dot.monthly { background: #f39c12; }
+        .task-dot.quarterly { background: #e74c3c; }
+
         .task-card {
             background: white;
             border-radius: 12px;
@@ -292,40 +416,6 @@
             color: #27ae60;
         }
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: 12px;
-            padding: 15px;
-            text-align: center;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s ease;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-2px);
-        }
-
-        .stat-number {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: #667eea;
-            margin-bottom: 5px;
-        }
-
-        .stat-label {
-            color: #7f8c8d;
-            font-weight: 600;
-            font-size: 0.75rem;
-            line-height: 1.2;
-        }
-
         .section-title {
             color: #2c3e50;
             font-size: 1.1rem;
@@ -357,11 +447,32 @@
             color: #2c3e50;
             margin-bottom: 5px;
             font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
         }
 
         .history-task {
             color: #7f8c8d;
             font-size: 0.8rem;
+        }
+
+        .user-badge {
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .user-badge.francesco {
+            background: #3498db;
+        }
+
+        .user-badge.alessandra {
+            background: #e91e63;
         }
 
         .notes-input {
@@ -428,6 +539,7 @@
         }
 
         .form-group input,
+        .form-group select,
         .form-group textarea {
             width: 100%;
             padding: 10px;
@@ -440,9 +552,44 @@
         }
 
         .form-group input:focus,
+        .form-group select:focus,
         .form-group textarea:focus {
             outline: none;
             border-color: #667eea;
+        }
+
+        .user-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .user-option {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+            touch-action: manipulation;
+        }
+
+        .user-option.selected {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+
+        .user-option.francesco.selected {
+            border-color: #3498db;
+            background: #3498db;
+        }
+
+        .user-option.alessandra.selected {
+            border-color: #e91e63;
+            background: #e91e63;
         }
 
         .modal-buttons {
@@ -510,36 +657,6 @@
             background: #e74c3c;
         }
 
-        /* iOS specific fixes */
-        @supports (-webkit-appearance: none) {
-            .btn, .tab, .close {
-                -webkit-appearance: none;
-            }
-            
-            input, textarea {
-                -webkit-appearance: none;
-                -webkit-border-radius: 8px;
-            }
-            
-            /* Prevent iOS zoom on input focus */
-            input[type="text"], 
-            input[type="date"], 
-            textarea {
-                font-size: 16px !important;
-            }
-        }
-
-        /* Safe area handling for iPhone */
-        @supports (padding: max(0px)) {
-            .tabs {
-                padding-bottom: max(10px, env(safe-area-inset-bottom));
-            }
-            
-            body {
-                padding-bottom: max(80px, calc(80px + env(safe-area-inset-bottom)));
-            }
-        }
-
         /* Mobile optimizations */
         @media (max-width: 480px) {
             .container {
@@ -554,36 +671,33 @@
                 width: calc(100% - 20px);
                 padding: 15px;
             }
-            
-            .stats-grid {
-                grid-template-columns: 1fr 1fr;
+
+            .calendar-day {
+                min-height: 50px;
+            }
+
+            .calendar-title {
+                font-size: 1.1rem;
+            }
+
+            .calendar-nav {
+                width: 35px;
+                height: 35px;
+                font-size: 1rem;
             }
         }
 
         /* Prevent text selection on UI elements */
-        .tab, .btn, .close, .stat-card {
+        .tab, .btn, .close, .user-option, .calendar-day {
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
             user-select: none;
         }
 
-        /* Ensure inputs and textareas are selectable */
-        input, textarea {
-            -webkit-user-select: text;
-            -moz-user-select: text;
-            -ms-user-select: text;
-            user-select: text;
-        }
-
         /* iOS scroll momentum and touch improvements */
         .container, .modal-content {
             -webkit-overflow-scrolling: touch;
-        }
-
-        /* Prevent iOS elastic bounce except for main content */
-        .tabs, .modal {
-            -webkit-overflow-scrolling: auto;
         }
     </style>
 </head>
@@ -595,29 +709,20 @@
                 <span class="status-text">Offline</span>
             </div>
             <h1>🐢 TurtleCare 🌊</h1>
-            <p>Planner sincronizzato per l'acquario delle tue Mauremys</p>
+            <p>Calendario acquario Francesco & Alessandra</p>
         </div>
 
         <div class="content">
-            <!-- Dashboard Tab -->
-            <div id="dashboard" class="tab-content active">
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-number" id="tasks-completed">0</div>
-                        <div class="stat-label">Attività Completate</div>
+            <!-- Calendario Tab -->
+            <div id="calendar" class="tab-content active">
+                <div class="calendar-container">
+                    <div class="calendar-header">
+                        <button class="calendar-nav" onclick="changeMonth(-1)">‹</button>
+                        <div class="calendar-title" id="calendar-title"></div>
+                        <button class="calendar-nav" onclick="changeMonth(1)">›</button>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="days-since-water-change">0</div>
-                        <div class="stat-label">Giorni dall'ultimo cambio acqua</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="filter-health">🟢</div>
-                        <div class="stat-label">Stato Filtro</div>
-                    </div>
+                    <div class="calendar-grid" id="calendar-grid"></div>
                 </div>
-
-                <h3 class="section-title">⚠️ Attività in Scadenza</h3>
-                <div id="urgent-tasks"></div>
             </div>
 
             <!-- Tasks Tab -->
@@ -635,6 +740,16 @@
             <!-- Notes Tab -->
             <div id="notes" class="tab-content">
                 <h3 class="section-title">📝 Note e Osservazioni</h3>
+                
+                <div class="user-selector">
+                    <div class="user-option francesco" onclick="selectUser('francesco', this)">
+                        👨 Francesco
+                    </div>
+                    <div class="user-option alessandra" onclick="selectUser('alessandra', this)">
+                        👩 Alessandra
+                    </div>
+                </div>
+                
                 <textarea id="notes-text" class="notes-input" placeholder="Scrivi qui le tue osservazioni sulle tartarughe, qualità dell'acqua, comportamenti, ecc..."></textarea>
                 <button class="btn btn-primary" onclick="saveNotes()">💾 Salva Nota</button>
                 <div id="saved-notes" style="margin-top: 20px;"></div>
@@ -644,9 +759,9 @@
 
     <!-- Bottom Navigation -->
     <div class="tabs">
-        <div class="tab active" onclick="showTab('dashboard', this)">
-            <div class="tab-icon">🏠</div>
-            <div>Home</div>
+        <div class="tab active" onclick="showTab('calendar', this)">
+            <div class="tab-icon">📅</div>
+            <div>Calendario</div>
         </div>
         <div class="tab" onclick="showTab('tasks', this)">
             <div class="tab-icon">📋</div>
@@ -667,6 +782,19 @@
         <div class="modal-content">
             <span class="close" onclick="closeModal()">&times;</span>
             <h3>✅ Completa Attività</h3>
+            
+            <div class="form-group">
+                <label>Chi ha completato l'attività:</label>
+                <div class="user-selector">
+                    <div class="user-option francesco" onclick="selectModalUser('francesco', this)">
+                        👨 Francesco
+                    </div>
+                    <div class="user-option alessandra" onclick="selectModalUser('alessandra', this)">
+                        👩 Alessandra
+                    </div>
+                </div>
+            </div>
+            
             <div class="form-group">
                 <label>Attività:</label>
                 <input type="text" id="modal-task-name" readonly>
@@ -675,10 +803,7 @@
                 <label>Data completamento:</label>
                 <input type="date" id="modal-date">
             </div>
-            <div class="form-group">
-                <label>Note aggiuntive:</label>
-                <textarea id="modal-notes" rows="3" placeholder="Eventuali osservazioni..."></textarea>
-            </div>
+            
             <div class="modal-buttons">
                 <button class="btn btn-cancel" onclick="closeModal()">❌ Annulla</button>
                 <button class="btn" onclick="completeTask()">✅ Conferma</button>
@@ -696,30 +821,25 @@
         let syncListeners = {};
         let lastSyncTime = 0;
         let isSyncing = false;
+        let currentDate = new Date();
+        let selectedUser = '';
+        let selectedModalUser = '';
 
-        // Task definitions
+        // Task definitions (rimosso il controllo quotidiano)
         const maintenanceTasks = [
-            {
-                id: 'daily-check',
-                name: 'Controllo Quotidiano',
-                description: 'Controllo temperatura, comportamento tartarughe, livello acqua',
-                frequency: 'Giornaliero',
-                intervalDays: 1,
-                category: 'daily'
-            },
             {
                 id: 'glass-cleaning',
                 name: 'Pulizia Vetri',
                 description: 'Pulizia vetri interni ed esterni, rimozione alghe',
-                frequency: 'Ogni 3-4 giorni',
+                frequency: 'Ogni 4 giorni',
                 intervalDays: 4,
                 category: 'weekly'
             },
             {
                 id: 'water-change',
                 name: 'Cambio Acqua Parziale',
-                description: '15-20% acqua ogni 12-18 giorni (con filtro + piante)',
-                frequency: 'Ogni 12-18 giorni',
+                description: '15-20% acqua ogni 15 giorni (con filtro + piante)',
+                frequency: 'Ogni 15 giorni',
                 intervalDays: 15,
                 category: 'weekly'
             },
@@ -735,7 +855,7 @@
                 id: 'filter-cleaning',
                 name: 'Pulizia Spugne Filtro',
                 description: 'Pulizia spugne Tetra EX Plus 700 con acqua acquario',
-                frequency: 'Ogni 3-4 settimane',
+                frequency: 'Ogni 25 giorni',
                 intervalDays: 25,
                 category: 'monthly'
             },
@@ -743,7 +863,7 @@
                 id: 'water-testing',
                 name: 'Test Completo Acqua',
                 description: 'Test pH, durezza, ammoniaca, nitriti, nitrati',
-                frequency: 'Mensile',
+                frequency: 'Ogni 30 giorni',
                 intervalDays: 30,
                 category: 'monthly'
             },
@@ -751,7 +871,7 @@
                 id: 'filter-maintenance',
                 name: 'Manutenzione Filtro Completa',
                 description: 'Sostituzione materiali filtranti, pulizia rotore',
-                frequency: 'Ogni 3 mesi',
+                frequency: 'Ogni 90 giorni',
                 intervalDays: 90,
                 category: 'quarterly'
             },
@@ -759,7 +879,7 @@
                 id: 'full-tank-cleaning',
                 name: 'Pulizia Completa Acquario',
                 description: 'Svuotamento, pulizia profonda, controllo attrezzature',
-                frequency: 'Ogni 6 mesi',
+                frequency: 'Ogni 180 giorni',
                 intervalDays: 180,
                 category: 'quarterly'
             }
@@ -768,30 +888,23 @@
         // Enhanced Storage functions with improved Firebase sync
         async function saveData(key, data) {
             try {
-                // Save to local cache immediately for instant UI updates
                 localCache[key] = data;
-                
-                // Always save to localStorage as backup
                 localStorage.setItem(`turtlecare_${key}`, JSON.stringify(data));
                 
-                // Try to save to Firebase if available
                 if (window.firebaseInitialized && window.firebaseDB && isOnline) {
                     const { database, ref, set, serverTimestamp } = window.firebaseDB;
-                    
                     setSyncStatus('syncing');
                     
                     await set(ref(database, key), {
                         data: data,
                         timestamp: serverTimestamp(),
-                        version: '2.0',
+                        version: '3.0',
                         deviceId: getDeviceId()
                     });
                     
-                    console.log(`✅ Data synced to cloud: ${key}`);
                     showSyncNotification('✅ Sincronizzato!', 'success');
                     setSyncStatus('online');
                 } else {
-                    console.log(`💾 Data saved locally: ${key}`);
                     setSyncStatus('offline');
                 }
                 
@@ -801,7 +914,6 @@
                 setSyncStatus('offline');
                 showSyncNotification('⚠️ Errore sincronizzazione', 'error');
                 
-                // Ensure localStorage backup always works
                 try {
                     localStorage.setItem(`turtlecare_${key}`, JSON.stringify(data));
                     localCache[key] = data;
@@ -815,12 +927,10 @@
 
         async function loadData(key) {
             try {
-                // Check local cache first for instant loading
                 if (localCache[key] !== undefined) {
                     return localCache[key];
                 }
                 
-                // Try to load from Firebase if available
                 if (window.firebaseInitialized && window.firebaseDB && isOnline) {
                     const { database, ref, get } = window.firebaseDB;
                     
@@ -828,17 +938,14 @@
                     if (snapshot.exists()) {
                         const cloudData = snapshot.val();
                         localCache[key] = cloudData.data;
-                        console.log(`☁️ Data loaded from cloud: ${key}`);
                         return cloudData.data;
                     }
                 }
                 
-                // Fallback to localStorage
                 const localData = localStorage.getItem(`turtlecare_${key}`);
                 if (localData) {
                     const parsedData = JSON.parse(localData);
                     localCache[key] = parsedData;
-                    console.log(`💾 Data loaded from local: ${key}`);
                     return parsedData;
                 }
                 
@@ -846,7 +953,6 @@
             } catch (error) {
                 console.error('❌ Load error:', error);
                 
-                // Final fallback to localStorage
                 try {
                     const localData = localStorage.getItem(`turtlecare_${key}`);
                     if (localData) {
@@ -862,7 +968,6 @@
             }
         }
 
-        // Device identification for better conflict resolution
         function getDeviceId() {
             let deviceId = localStorage.getItem('turtlecare_device_id');
             if (!deviceId) {
@@ -872,10 +977,8 @@
             return deviceId;
         }
 
-        // Enhanced real-time sync with better conflict resolution
         function setupRealtimeSync() {
             if (!window.firebaseInitialized || !window.firebaseDB) {
-                console.log('⚠️ Firebase non disponibile, modalità offline');
                 setSyncStatus('offline');
                 return;
             }
@@ -885,12 +988,10 @@
                 const currentDeviceId = getDeviceId();
                 
                 ['completions', 'history', 'notes'].forEach(key => {
-                    // Clean up existing listeners
                     if (syncListeners[key]) {
                         off(syncListeners[key]);
                     }
                     
-                    // Set up new listener with conflict resolution
                     const dataRef = ref(database, key);
                     syncListeners[key] = dataRef;
                     
@@ -898,57 +999,31 @@
                         if (snapshot.exists()) {
                             const cloudData = snapshot.val();
                             const newData = cloudData.data;
-                            const cloudTimestamp = cloudData.timestamp;
                             const cloudDeviceId = cloudData.deviceId;
                             
-                            // Skip if this update came from current device
                             if (cloudDeviceId === currentDeviceId) {
                                 return;
                             }
                             
-                            // Check if we need to update local data
                             const currentData = localCache[key];
                             const hasChanges = JSON.stringify(currentData) !== JSON.stringify(newData);
                             
                             if (hasChanges) {
                                 localCache[key] = newData;
-                                console.log(`🔄 Real-time update from ${cloudDeviceId}: ${key}`);
-                                
-                                // Update localStorage backup
                                 localStorage.setItem(`turtlecare_${key}`, JSON.stringify(newData));
-                                
-                                // Refresh current tab if needed
                                 refreshCurrentTab(key);
-                                
-                                // Show sync notification (subtle)
                                 showSyncNotification('🔄 Aggiornato', 'success');
                             }
                         }
-                    }, (error) => {
-                        console.error(`❌ Sync error for ${key}:`, error);
-                        setSyncStatus('offline');
                     });
                 });
                 
-                // Enhanced connection monitoring
                 const connectedRef = ref(database, '.info/connected');
                 onValue(connectedRef, (snapshot) => {
-                    const connected = snapshot.val();
-                    isOnline = connected;
-                    
-                    if (connected) {
-                        console.log('🟢 Firebase connected');
-                        setSyncStatus('online');
-                        
-                        // Trigger a gentle sync check
-                        setTimeout(syncPendingChanges, 1000);
-                    } else {
-                        console.log('🔴 Firebase disconnected');
-                        setSyncStatus('offline');
-                    }
+                    isOnline = snapshot.val();
+                    setSyncStatus(isOnline ? 'online' : 'offline');
                 });
                 
-                console.log('🚀 Enhanced real-time sync enabled!');
                 setSyncStatus('online');
                 
             } catch (error) {
@@ -957,20 +1032,17 @@
             }
         }
 
-        // Refresh UI when data changes
         function refreshCurrentTab(dataKey) {
             const activeTab = document.querySelector('.tab.active');
             if (!activeTab) return;
             
             const tabText = activeTab.textContent.toLowerCase();
-            
-            // Throttle refreshes to avoid spam
             const now = Date.now();
             if (now - lastSyncTime < 500) return;
             lastSyncTime = now;
             
-            if (tabText.includes('home') && dataKey === 'completions') {
-                updateDashboard();
+            if (tabText.includes('calendario') && dataKey === 'completions') {
+                renderCalendar();
             } else if (tabText.includes('storia') && dataKey === 'history') {
                 renderHistory();
             } else if (tabText.includes('note') && dataKey === 'notes') {
@@ -980,29 +1052,6 @@
             }
         }
 
-        // Sync any pending changes when coming back online
-        async function syncPendingChanges() {
-            if (!isOnline || !window.firebaseInitialized) return;
-            
-            try {
-                setSyncStatus('syncing');
-                
-                const keys = ['completions', 'history', 'notes'];
-                for (const key of keys) {
-                    const localData = localCache[key] || await loadData(key);
-                    if (localData) {
-                        await saveData(key, localData);
-                    }
-                }
-                
-                setSyncStatus('online');
-            } catch (error) {
-                console.error('❌ Sync pending changes failed:', error);
-                setSyncStatus('offline');
-            }
-        }
-
-        // Enhanced connection status with visual feedback
         function setSyncStatus(status) {
             const indicator = document.getElementById('connection-indicator');
             if (!indicator) return;
@@ -1016,27 +1065,22 @@
                 case 'online':
                     statusIcon.textContent = '🟢';
                     statusText.textContent = 'Online';
-                    indicator.title = 'Connesso - Sincronizzazione attiva';
                     break;
                 case 'offline':
                     statusIcon.textContent = '🔴';
                     statusText.textContent = 'Offline';
-                    indicator.title = 'Offline - I dati verranno sincronizzati alla riconnessione';
                     break;
                 case 'syncing':
                     statusIcon.textContent = '🟡';
                     statusText.textContent = 'Sync...';
-                    indicator.title = 'Sincronizzazione in corso...';
                     break;
             }
         }
 
-        // Enhanced notification system
         function showSyncNotification(message, type = 'info') {
             const notification = document.getElementById('sync-notification');
             if (!notification) return;
             
-            // Clear existing timeout
             if (notification.timeoutId) {
                 clearTimeout(notification.timeoutId);
             }
@@ -1049,24 +1093,35 @@
             }, 2000);
         }
 
-        // Tab management
+        function selectUser(user, element) {
+            selectedUser = user;
+            document.querySelectorAll('#notes .user-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            element.classList.add('selected');
+        }
+
+        function selectModalUser(user, element) {
+            selectedModalUser = user;
+            document.querySelectorAll('#task-modal .user-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            element.classList.add('selected');
+        }
+
         function showTab(tabName, tabElement) {
-            // Hide all tabs
             const contents = document.querySelectorAll('.tab-content');
             contents.forEach(content => content.classList.remove('active'));
             
-            // Remove active from all tab buttons
             const tabs = document.querySelectorAll('.tab');
             tabs.forEach(tab => tab.classList.remove('active'));
             
-            // Show selected tab
             document.getElementById(tabName).classList.add('active');
             tabElement.classList.add('active');
             
-            // Update content with animation
             setTimeout(() => {
-                if (tabName === 'dashboard') {
-                    updateDashboard();
+                if (tabName === 'calendar') {
+                    renderCalendar();
                 } else if (tabName === 'tasks') {
                     renderAllTasks();
                 } else if (tabName === 'history') {
@@ -1077,7 +1132,6 @@
             }, 50);
         }
 
-        // Date calculations
         function getNextDueDate(taskId, lastCompleted, intervalDays) {
             if (!lastCompleted) {
                 return new Date();
@@ -1102,15 +1156,98 @@
             }
         }
 
-        // Render functions
+        function changeMonth(direction) {
+            currentDate.setMonth(currentDate.getMonth() + direction);
+            renderCalendar();
+        }
+
+        async function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            const monthNames = [
+                'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
+                'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'
+            ];
+            document.getElementById('calendar-title').textContent = `${monthNames[month]} ${year}`;
+            
+            const firstDay = new Date(year, month, 1);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+            
+            const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = '';
+            
+            const dayHeaders = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
+            dayHeaders.forEach(day => {
+                const headerEl = document.createElement('div');
+                headerEl.className = 'calendar-day-header';
+                headerEl.textContent = day;
+                grid.appendChild(headerEl);
+            });
+            
+            const completions = await loadData('completions') || {};
+            const today = new Date();
+            const currentDay = new Date(startDate);
+            
+            for (let i = 0; i < 42; i++) {
+                const dayEl = document.createElement('div');
+                dayEl.className = 'calendar-day';
+                
+                const isCurrentMonth = currentDay.getMonth() === month;
+                const isToday = currentDay.toDateString() === today.toDateString();
+                
+                if (!isCurrentMonth) {
+                    dayEl.classList.add('other-month');
+                }
+                
+                if (isToday) {
+                    dayEl.classList.add('today');
+                }
+                
+                const dayNumber = document.createElement('div');
+                dayNumber.className = 'day-number';
+                dayNumber.textContent = currentDay.getDate();
+                dayEl.appendChild(dayNumber);
+                
+                const tasksContainer = document.createElement('div');
+                tasksContainer.className = 'day-tasks';
+                
+                if (isCurrentMonth) {
+                    for (const task of maintenanceTasks) {
+                        const nextDue = getNextDueDate(task.id, completions[task.id], task.intervalDays);
+                        const taskDate = new Date(nextDue);
+                        
+                        if (taskDate.toDateString() === currentDay.toDateString()) {
+                            const taskDot = document.createElement('div');
+                            taskDot.className = `task-dot ${task.category}`;
+                            taskDot.title = task.name;
+                            tasksContainer.appendChild(taskDot);
+                        }
+                    }
+                }
+                
+                dayEl.appendChild(tasksContainer);
+                grid.appendChild(dayEl);
+                
+                currentDay.setDate(currentDay.getDate() + 1);
+            }
+        }
+
         async function renderTaskCard(task, showActions = true) {
             const completions = await loadData('completions') || {};
+            const history = await loadData('history') || [];
+            
             const lastCompleted = completions[task.id];
             const nextDue = getNextDueDate(task.id, lastCompleted, task.intervalDays);
             const dueStatus = getDueStatus(nextDue);
             
+            const lastCompletion = history
+                .filter(h => h.taskId === task.id)
+                .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+            
             const lastCompletedText = lastCompleted 
-                ? `Ultima volta: ${new Date(lastCompleted).toLocaleDateString('it-IT')}`
+                ? `Ultima volta: ${new Date(lastCompleted).toLocaleDateString('it-IT')}${lastCompletion ? ` (${lastCompletion.user === 'francesco' ? '👨 Francesco' : '👩 Alessandra'})` : ''}`
                 : 'Mai eseguita';
 
             return `
@@ -1131,88 +1268,6 @@
             `;
         }
 
-        async function updateDashboard() {
-            const completions = await loadData('completions') || {};
-            const history = await loadData('history') || [];
-            
-            // Update stats with smooth animations
-            const tasksCompletedEl = document.getElementById('tasks-completed');
-            const currentCount = parseInt(tasksCompletedEl.textContent) || 0;
-            const newCount = history.length;
-            
-            if (currentCount !== newCount) {
-                animateNumber(tasksCompletedEl, currentCount, newCount);
-            }
-            
-            // Days since water change
-            const waterChangeCompletion = completions['water-change'];
-            const daysSinceEl = document.getElementById('days-since-water-change');
-            
-            if (waterChangeCompletion) {
-                const lastChange = new Date(waterChangeCompletion);
-                const today = new Date();
-                const diffTime = today - lastChange;
-                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                daysSinceEl.textContent = diffDays;
-            } else {
-                daysSinceEl.textContent = '∞';
-            }
-            
-            // Filter status with color coding
-            const filterCompletion = completions['filter-cleaning'];
-            const filterEl = document.getElementById('filter-health');
-            let filterStatus = '🔴';
-            
-            if (filterCompletion) {
-                const lastFilter = new Date(filterCompletion);
-                const today = new Date();
-                const diffTime = today - lastFilter;
-                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                if (diffDays < 20) filterStatus = '🟢';
-                else if (diffDays < 30) filterStatus = '🟡';
-            }
-            filterEl.textContent = filterStatus;
-            
-            // Urgent tasks
-            const urgentContainer = document.getElementById('urgent-tasks');
-            const urgentTasks = [];
-            
-            for (const task of maintenanceTasks) {
-                const nextDue = getNextDueDate(task.id, completions[task.id], task.intervalDays);
-                const dueStatus = getDueStatus(nextDue);
-                if (dueStatus.status === 'overdue' || dueStatus.status === 'due-soon') {
-                    urgentTasks.push(task);
-                }
-            }
-            
-            if (urgentTasks.length === 0) {
-                urgentContainer.innerHTML = '<div class="empty-state">🎉 Tutte le attività sono in regola!</div>';
-            } else {
-                const taskCards = await Promise.all(urgentTasks.map(task => renderTaskCard(task)));
-                urgentContainer.innerHTML = taskCards.join('');
-            }
-        }
-
-        // Smooth number animation
-        function animateNumber(element, start, end, duration = 500) {
-            const startTime = performance.now();
-            const difference = end - start;
-            
-            function updateNumber(currentTime) {
-                const elapsed = currentTime - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                const currentValue = Math.round(start + (difference * progress));
-                
-                element.textContent = currentValue;
-                
-                if (progress < 1) {
-                    requestAnimationFrame(updateNumber);
-                }
-            }
-            
-            requestAnimationFrame(updateNumber);
-        }
-
         async function renderAllTasks() {
             const container = document.getElementById('all-tasks');
             const taskCards = await Promise.all(maintenanceTasks.map(task => renderTaskCard(task)));
@@ -1228,26 +1283,32 @@
                 return;
             }
             
-            // Sort by date (most recent first)
             const sortedHistory = [...history].sort((a, b) => new Date(b.date) - new Date(a.date));
             
             container.innerHTML = sortedHistory.map(item => `
                 <div class="history-item">
-                    <div class="history-date">${new Date(item.date).toLocaleDateString('it-IT')} - ${item.taskName}</div>
-                    <div class="history-task">${item.notes || 'Nessuna nota aggiuntiva'}</div>
+                    <div class="history-date">
+                        <span>${new Date(item.date).toLocaleDateString('it-IT')} - ${item.taskName}</span>
+                        <span class="user-badge ${item.user || 'unknown'}">${item.user === 'francesco' ? '👨 Francesco' : item.user === 'alessandra' ? '👩 Alessandra' : '👤 Sconosciuto'}</span>
+                    </div>
                 </div>
             `).join('');
         }
 
-        // Modal functions
         let currentTaskId = '';
 
         function openTaskModal(taskId) {
             currentTaskId = taskId;
+            selectedModalUser = '';
+            
             const task = maintenanceTasks.find(t => t.id === taskId);
             document.getElementById('modal-task-name').value = task.name;
             document.getElementById('modal-date').value = new Date().toISOString().split('T')[0];
-            document.getElementById('modal-notes').value = '';
+            
+            document.querySelectorAll('#task-modal .user-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            
             document.getElementById('task-modal').style.display = 'block';
             document.body.style.overflow = 'hidden';
         }
@@ -1265,7 +1326,6 @@
 
         async function completeTask() {
             const date = document.getElementById('modal-date').value;
-            const notes = document.getElementById('modal-notes').value;
             const task = maintenanceTasks.find(t => t.id === currentTaskId);
             
             if (!date) {
@@ -1273,28 +1333,30 @@
                 return;
             }
             
+            if (!selectedModalUser) {
+                alert('⚠️ Seleziona chi ha completato l\'attività!');
+                return;
+            }
+            
             try {
-                // Save completion
                 const completions = await loadData('completions') || {};
                 completions[currentTaskId] = date;
                 await saveData('completions', completions);
                 
-                // Add to history
                 const history = await loadData('history') || [];
                 history.unshift({
                     id: Date.now(),
                     taskId: currentTaskId,
                     taskName: task.name,
                     date: date,
-                    notes: notes,
+                    user: selectedModalUser,
                     timestamp: new Date().toISOString()
                 });
                 await saveData('history', history);
                 
                 closeModal();
-                await updateDashboard();
+                await renderCalendar();
                 
-                // Show success
                 showSyncNotification('✅ Attività completata!', 'success');
                 
             } catch (error) {
@@ -1303,11 +1365,15 @@
             }
         }
 
-        // Notes functions
         async function saveNotes() {
             const notesText = document.getElementById('notes-text').value.trim();
             if (!notesText) {
                 alert('⚠️ Scrivi qualcosa prima di salvare!');
+                return;
+            }
+            
+            if (!selectedUser) {
+                alert('⚠️ Seleziona chi sta scrivendo la nota!');
                 return;
             }
             
@@ -1316,11 +1382,18 @@
                 savedNotes.unshift({
                     id: Date.now(),
                     text: notesText,
+                    user: selectedUser,
                     date: new Date().toISOString()
                 });
                 
                 await saveData('notes', savedNotes);
                 document.getElementById('notes-text').value = '';
+                
+                selectedUser = '';
+                document.querySelectorAll('#notes .user-option').forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+                
                 await loadNotes();
                 showSyncNotification('📝 Nota salvata!', 'success');
                 
@@ -1342,85 +1415,35 @@
             container.innerHTML = '<h4 class="section-title">📋 Note Salvate</h4>' + 
                 savedNotes.map(note => `
                     <div class="history-item">
-                        <div class="history-date">${new Date(note.date).toLocaleDateString('it-IT', { 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        })}</div>
+                        <div class="history-date">
+                            <span>${new Date(note.date).toLocaleDateString('it-IT', { 
+                                year: 'numeric', 
+                                month: 'long', 
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            })}</span>
+                            <span class="user-badge ${note.user || 'unknown'}">${note.user === 'francesco' ? '👨 Francesco' : note.user === 'alessandra' ? '👩 Alessandra' : '👤 Sconosciuto'}</span>
+                        </div>
                         <div class="history-task">${note.text}</div>
                     </div>
                 `).join('');
         }
 
-        // Initialize app
         document.addEventListener('DOMContentLoaded', async function() {
             try {
                 console.log('🐢 Initializing TurtleCare Enhanced...');
                 
-                // Wait for Firebase to be ready
                 let attempts = 0;
                 while (!window.firebaseInitialized && attempts < 10) {
                     await new Promise(resolve => setTimeout(resolve, 100));
                     attempts++;
                 }
                 
-                // Setup real-time sync
                 setupRealtimeSync();
-                
-                // Load initial data
-                await updateDashboard();
+                await renderCalendar();
                 
                 console.log('🚀 TurtleCare Enhanced initialized successfully!');
-                
-                // iOS specific optimizations
-                if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-                    // Prevent double-tap zoom
-                    let lastTouchEnd = 0;
-                    document.addEventListener('touchend', function (event) {
-                        const now = (new Date()).getTime();
-                        if (now - lastTouchEnd <= 300) {
-                            event.preventDefault();
-                        }
-                        lastTouchEnd = now;
-                    }, false);
-                    
-                    // Optimize viewport for iOS
-                    const viewport = document.querySelector('meta[name=viewport]');
-                    if (viewport) {
-                        viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
-                    }
-                    
-                    console.log('🍎 iOS optimizations applied');
-                }
-                
-                // Welcome message for first time users
-                const isFirstTime = !(await loadData('completions')) && !(await loadData('history'));
-                if (isFirstTime) {
-                    setTimeout(() => {
-                        showSyncNotification('🐢 Benvenuto in TurtleCare!', 'success');
-                    }, 1500);
-                }
-                
-                // Handle page visibility changes for better sync
-                document.addEventListener('visibilitychange', function() {
-                    if (!document.hidden && isOnline) {
-                        // Page became visible, check for updates
-                        setTimeout(syncPendingChanges, 500);
-                    }
-                });
-                
-                // Handle online/offline events
-                window.addEventListener('online', function() {
-                    console.log('🟢 Browser is back online');
-                    setTimeout(syncPendingChanges, 1000);
-                });
-                
-                window.addEventListener('offline', function() {
-                    console.log('🔴 Browser went offline');
-                    setSyncStatus('offline');
-                });
                 
             } catch (error) {
                 console.error('❌ Initialization error:', error);
@@ -1429,19 +1452,11 @@
             }
         });
 
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', function() {
-            // Clean up Firebase listeners
-            if (window.firebaseDB && syncListeners) {
-                const { off } = window.firebaseDB;
-                Object.values(syncListeners).forEach(listener => {
-                    if (listener) off(listener);
-                });
-            }
-        });
-
-        // Expose functions to global scope for onclick handlers
+        // Expose functions to global scope
         window.showTab = showTab;
+        window.changeMonth = changeMonth;
+        window.selectUser = selectUser;
+        window.selectModalUser = selectModalUser;
         window.openTaskModal = openTaskModal;
         window.closeModal = closeModal;
         window.closeModalOnBackground = closeModalOnBackground;
@@ -1449,4 +1464,4 @@
         window.saveNotes = saveNotes;
     </script>
 </body>
-</html>'
+</html>
